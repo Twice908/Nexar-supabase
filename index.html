@@ -504,7 +504,6 @@
                 this.currentUser = null;
                 this.currentView = 'login';
                 this.activeTab = 'home';
-                this.previewRole = 'driver';
             }
 
             render() {
@@ -654,20 +653,6 @@
                             <span class="notification-text">Ready to carpool? Check your rides for today!</span>
                         </div>
 
-                        <div class="profile-card">
-                            <h3 style="margin-bottom: 15px;">Preview: How a Ride Looks</h3>
-                            <div style="display:flex; gap:20px; margin-bottom:15px; flex-wrap:wrap;">
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:500; cursor:pointer;">
-                                    <input type="radio" name="previewRole" value="driver" ${this.previewRole !== 'passenger' ? 'checked' : ''} onchange="app.setPreviewRole('driver')" style="width:auto;">
-                                    See as Nexar (Driver)
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:500; cursor:pointer;">
-                                    <input type="radio" name="previewRole" value="passenger" ${this.previewRole === 'passenger' ? 'checked' : ''} onchange="app.setPreviewRole('passenger')" style="width:auto;">
-                                    See as Nexirian (Passenger)
-                                </label>
-                            </div>
-                            <div id="ridePreview">${this.renderRidePreview()}</div>
-                        </div>
 
                         <button class="btn btn-danger" onclick="app.logout()">Logout</button>
                     </div>
@@ -700,53 +685,6 @@
                 return `
                     <div class="map-placeholder" style="min-height:180px;">${pins}</div>
                     <div style="margin-top:8px; margin-bottom:5px;">${legend}</div>
-                `;
-            }
-
-            renderRidePreview() {
-                const currentUser = this.currentUser;
-                const otherUsers = this.store.getUsers().filter(u => u.email !== currentUser.email);
-                const role = this.previewRole || 'driver';
-
-                let driver, passengers;
-                if (role === 'driver') {
-                    driver = currentUser;
-                    passengers = otherUsers.slice(0, 2);
-                } else {
-                    driver = otherUsers[0];
-                    passengers = [currentUser, ...otherUsers.slice(1, 2)];
-                }
-
-                if (!driver) {
-                    return '<p style="color:#6b7280;">Register at least one more Nexar to see a passenger preview.</p>';
-                }
-
-                const pickupTime = driver.officeEntryTime || '09:00';
-                const dropoffTime = this.matcher.calculateDropoffTime(pickupTime);
-                const status = 'active';
-                const roleLabel = role === 'driver' ? 'Nexar (Driver)' : 'Nexirian (Passenger)';
-
-                return `
-                    <div class="ride-card">
-                        <div class="ride-header">
-                            <div>
-                                <strong>🌅 Morning Ride (Preview)</strong>
-                                <p style="font-size:0.9em; color:#6b7280;">Sample only — not a real scheduled ride</p>
-                            </div>
-                            <span class="ride-status status-${status}">${this.getStatusLabel(status)}</span>
-                        </div>
-                        <p><strong>Role:</strong> ${roleLabel}</p>
-                        ${role === 'passenger' ? `<p><strong>Nexar (Driver):</strong> ${driver.name} — ${driver.carCompany} ${driver.carModel} (${driver.carNumber})</p>` : ''}
-                        <p><strong>Pickup Time:</strong> ${pickupTime}</p>
-                        <p><strong>Dropoff Time:</strong> ${dropoffTime}</p>
-                        ${this.renderMapPreview(this.buildRoutePoints(driver.name, passengers.map(p => p.name), 'Office'))}
-                        ${role === 'driver' ? `
-                            <div style="margin-top:15px;">
-                                <p><strong>Passenger Details:</strong></p>
-                                ${passengers.map(p => `<p>• ${p.name} — pickup near ${p.homeZone}</p>`).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
                 `;
             }
 
@@ -832,7 +770,6 @@
                         <p style="font-size:0.85em; color:#6b7280; margin-bottom:6px;"><strong>Your Nexar</strong></p>
                         <p><strong>${driverUser.name}</strong></p>
                         <p>${driverUser.carCompany} ${driverUser.carModel} — <strong>${driverUser.carNumber}</strong></p>
-                        <p>📞 ${driverUser.mobile}</p>
                     </div>
                 ` : '';
 
@@ -863,7 +800,7 @@
                                 <p><strong>Passengers:</strong></p>
                                 ${ride.passengers.map(p => {
                                     const passenger = this.store.getUserByEmail(p);
-                                    return passenger ? `<p>• ${passenger.name} (${passenger.homeZone}) — ${passenger.mobile}</p>` : '';
+                                    return passenger ? `<p>• ${passenger.name} (${passenger.homeZone})</p>` : '';
                                 }).join('')}
                             </div>
                         ` : ''}
@@ -989,8 +926,7 @@
                 this.logout = this.logout.bind(this);
                 this.switchTab = this.switchTab.bind(this);
                 this.cancelAsDriver = this.cancelAsDriver.bind(this);
-                this.cancelAsPassenger = this.cancelAsPassenger.bind(this);
-                this.setPreviewRole = this.setPreviewRole.bind(this);
+                this.cancelAsPassenger = this.cancelAsPassenger.bind(this); 
 
                 document.getElementById('app').innerHTML =
                     '<p style="text-align:center; color:#6b7280;">Loading…</p>';
