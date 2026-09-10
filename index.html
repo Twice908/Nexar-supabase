@@ -15,9 +15,7 @@
             --light: #f3f4f6;
             --dark: #1f2937;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -27,7 +25,6 @@
             justify-content: center;
             padding: 20px;
         }
-
         .container {
             background: white;
             border-radius: 20px;
@@ -37,12 +34,10 @@
             padding: 30px;
             animation: slideUp 0.5s ease;
         }
-
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         .logo { text-align: center; margin-bottom: 30px; }
         .logo h1 {
             font-size: 2.5em;
@@ -52,15 +47,8 @@
             margin-bottom: 5px;
         }
         .logo p { color: var(--gray); font-size: 0.9em; }
-
         .form-group { margin-bottom: 20px; }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--dark);
-            font-weight: 500;
-            font-size: 0.9em;
-        }
+        label { display: block; margin-bottom: 8px; color: var(--dark); font-weight: 500; font-size: 0.9em; }
         input, select, textarea {
             width: 100%;
             padding: 12px;
@@ -74,7 +62,6 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-
         .btn {
             width: 100%;
             padding: 14px;
@@ -89,34 +76,15 @@
             display: inline-block;
         }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-        }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); }
         .btn-secondary { background: var(--light); color: var(--dark); margin-top: 10px; }
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
-
-        .error {
-            color: var(--danger);
-            font-size: 0.85em;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            display: none;
-        }
+        .error { color: var(--danger); font-size: 0.85em; margin-top: 5px; margin-bottom: 10px; display: none; }
         .error.show { display: block; }
-
-        .tabs {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--light);
-        }
+        .tabs { display: flex; justify-content: space-around; margin-bottom: 30px; border-bottom: 2px solid var(--light); }
         .tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -126,17 +94,10 @@
             transition: all 0.3s;
         }
         .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .profile-card {
-            background: var(--light);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+        .profile-card { background: var(--light); border-radius: 15px; padding: 20px; margin-bottom: 20px; }
         .profile-item {
             display: flex;
             justify-content: space-between;
@@ -144,14 +105,9 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #e5e7eb;
         }
-        .profile-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
+        .profile-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .profile-label { color: var(--gray); font-weight: 500; }
         .profile-value { font-weight: 600; color: var(--dark); }
-
         .ride-card {
             background: white;
             border: 2px solid #e5e7eb;
@@ -160,22 +116,9 @@
             margin-bottom: 15px;
             transition: all 0.3s;
         }
-        .ride-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .ride-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .ride-status {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
+        .ride-card:hover { border-color: var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .ride-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .ride-status { padding: 5px 10px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
         .status-matching { background: #fef3c7; color: #92400e; }
         .status-matched { background: #dbeafe; color: #1e40af; }
         .status-started { background: #e0e7ff; color: #3730a3; }
@@ -183,7 +126,6 @@
         .status-completed { background: #e5e7eb; color: #374151; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
         .status-no-match { background: #ffedd5; color: #9a3412; }
-
         .map-placeholder {
             background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
             border-radius: 15px;
@@ -205,7 +147,6 @@
         .map-point.driver { background: var(--success); }
         .map-point.passenger { background: var(--warning); }
         .map-point.destination { background: var(--danger); }
-
         .notification {
             background: #fef3c7;
             border-left: 4px solid var(--warning);
@@ -221,9 +162,7 @@
     </style>
 </head>
 <body>
-    <div class="container" id="app">
-        <!-- Dynamic content will be rendered here -->
-    </div>
+    <div class="container" id="app"></div>
 
     <script>
         // ==================== SUPABASE CONFIG ====================
@@ -485,7 +424,6 @@
         // ==================== MATCHING ALGORITHM (client-side helpers) ====================
         class MatchingAlgorithm {
             constructor(store) { this.store = store; }
-
             calculateDropoffTime(pickupTime) {
                 const [hours, minutes] = pickupTime.split(':').map(Number);
                 const dropoffMinutes = hours * 60 + minutes + 30;
@@ -557,50 +495,17 @@
                         <p>Complete Your Profile</p>
                     </div>
                     <form id="onboardingForm">
-                        <div class="form-group">
-                            <label for="name">Full Name</label>
-                            <input type="text" id="name" value="${user.name || ''}" placeholder="Enter your name">
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" value="${user.email || ''}" placeholder="Enter your email">
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" placeholder="At least 6 characters">
-                        </div>
-                        <div class="form-group">
-                            <label for="mobile">Mobile Number</label>
-                            <input type="tel" id="mobile" value="${user.mobile || ''}" placeholder="Enter mobile number">
-                        </div>
-                        <div class="form-group">
-                            <label for="homeZone">Home Zone</label>
-                            <input type="text" id="homeZone" value="${user.homeZone || ''}" placeholder="e.g., Andheri West, Mumbai">
-                        </div>
-                        <div class="form-group">
-                            <label for="officeAddress">Office Address</label>
-                            <textarea id="officeAddress" rows="3" placeholder="Enter office address">${user.officeAddress || ''}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="officeEntryTime">Office Entry Time</label>
-                            <input type="time" id="officeEntryTime" value="${user.officeEntryTime || '09:00'}">
-                        </div>
-                        <div class="form-group">
-                            <label for="officeExitTime">Office Exit Time</label>
-                            <input type="time" id="officeExitTime" value="${user.officeExitTime || '18:00'}">
-                        </div>
-                        <div class="form-group">
-                            <label for="carCompany">Car Company</label>
-                            <input type="text" id="carCompany" value="${user.carCompany || ''}" placeholder="e.g., Maruti Suzuki">
-                        </div>
-                        <div class="form-group">
-                            <label for="carModel">Car Model</label>
-                            <input type="text" id="carModel" value="${user.carModel || ''}" placeholder="e.g., Swift">
-                        </div>
-                        <div class="form-group">
-                            <label for="carNumber">Car Number Plate</label>
-                            <input type="text" id="carNumber" value="${user.carNumber || ''}" placeholder="e.g., MH14KM1234">
-                        </div>
+                        <div class="form-group"><label for="name">Full Name</label><input type="text" id="name" value="${user.name || ''}" placeholder="Enter your name"></div>
+                        <div class="form-group"><label for="email">Email</label><input type="email" id="email" value="${user.email || ''}" placeholder="Enter your email"></div>
+                        <div class="form-group"><label for="password">Password</label><input type="password" id="password" placeholder="At least 6 characters"></div>
+                        <div class="form-group"><label for="mobile">Mobile Number</label><input type="tel" id="mobile" value="${user.mobile || ''}" placeholder="Enter mobile number"></div>
+                        <div class="form-group"><label for="homeZone">Home Zone</label><input type="text" id="homeZone" value="${user.homeZone || ''}" placeholder="e.g., Andheri West, Mumbai"></div>
+                        <div class="form-group"><label for="officeAddress">Office Address</label><textarea id="officeAddress" rows="3" placeholder="Enter office address">${user.officeAddress || ''}</textarea></div>
+                        <div class="form-group"><label for="officeEntryTime">Office Entry Time</label><input type="time" id="officeEntryTime" value="${user.officeEntryTime || '09:00'}"></div>
+                        <div class="form-group"><label for="officeExitTime">Office Exit Time</label><input type="time" id="officeExitTime" value="${user.officeExitTime || '18:00'}"></div>
+                        <div class="form-group"><label for="carCompany">Car Company</label><input type="text" id="carCompany" value="${user.carCompany || ''}" placeholder="e.g., Maruti Suzuki"></div>
+                        <div class="form-group"><label for="carModel">Car Model</label><input type="text" id="carModel" value="${user.carModel || ''}" placeholder="e.g., Swift"></div>
+                        <div class="form-group"><label for="carNumber">Car Number Plate</label><input type="text" id="carNumber" value="${user.carNumber || ''}" placeholder="e.g., MH14KM1234"></div>
                         <div class="form-group">
                             <label for="vacantSeats">Vacant Seats (2-4)</label>
                             <select id="vacantSeats">
@@ -652,8 +557,6 @@
                             <span class="notification-icon">🚗</span>
                             <span class="notification-text">Ready to carpool? Check your rides for today!</span>
                         </div>
-
-
                         <button class="btn btn-danger" onclick="app.logout()">Logout</button>
                     </div>
                 `;
@@ -697,7 +600,10 @@
 
                 return `
                     <div class="tab-content active" id="ridesContent">
-                        <h2 style="margin-bottom: 20px;">Your Rides</h2>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h2>Your Rides</h2>
+                            <button class="btn btn-outline" style="width:auto; padding:8px 14px; font-size:14px;" onclick="app.refresh()">↻ Refresh</button>
+                        </div>
                         <div id="cancelError" class="error"></div>
                         ${userRides.length === 0 ?
                             '<p>No rides scheduled yet.</p>' :
@@ -722,11 +628,20 @@
                 return `<button class="btn btn-outline" style="margin-top:15px;" onclick="app.cancelAsPassenger('${ride.id}', this)">Cancel My Seat</button>`;
             }
 
+            getRideActionButtonsHTML(ride, isDriver) {
+                if (!isDriver) return '';
+                if (ride.status === 'matched') {
+                    return `<button class="btn btn-primary" style="margin-top:15px;" onclick="app.startRide('${ride.id}', this)">Start Ride</button>`;
+                }
+                if (ride.status === 'active' || ride.status === 'started') {
+                    return `<button class="btn btn-success" style="margin-top:15px;" onclick="app.completeRide('${ride.id}', this)">Complete Ride</button>`;
+                }
+                return '';
+            }
+
             renderRideCard(ride) {
                 const isDriver = ride.driver === this.currentUser.email;
 
-                // Special case: user has no matched ride today. Nothing to cancel,
-                // no map to show, no driver info — just a clear message.
                 if (ride.status === 'no match') {
                     return `
                         <div class="ride-card">
@@ -742,8 +657,6 @@
                     `;
                 }
 
-                // Special case: driver cancelled and no rematch succeeded — the
-                // passenger is stranded. Show the reason plainly.
                 if (ride.status === 'cancelled') {
                     return `
                         <div class="ride-card">
@@ -762,8 +675,6 @@
                 const role = isDriver ? 'Nexar (Driver)' : 'Nexirian (Passenger)';
                 const statusClass = `status-${ride.status.toLowerCase().replace(' ', '-')}`;
 
-                // For passengers: show the driver's identifying details so they know
-                // whose car to look for.
                 const driverUser = this.store.getUserByEmail(ride.driver);
                 const driverInfoHTML = (!isDriver && driverUser) ? `
                     <div style="margin-top:15px; padding:12px; background:#f9fafb; border-radius:10px;">
@@ -805,6 +716,7 @@
                             </div>
                         ` : ''}
 
+                        ${this.getRideActionButtonsHTML(ride, isDriver)}
                         ${this.getCancelButtonHTML(ride, isDriver)}
                     </div>
                 `;
@@ -926,7 +838,10 @@
                 this.logout = this.logout.bind(this);
                 this.switchTab = this.switchTab.bind(this);
                 this.cancelAsDriver = this.cancelAsDriver.bind(this);
-                this.cancelAsPassenger = this.cancelAsPassenger.bind(this); 
+                this.cancelAsPassenger = this.cancelAsPassenger.bind(this);
+                this.refresh = this.refresh.bind(this);
+                this.startRide = this.startRide.bind(this);
+                this.completeRide = this.completeRide.bind(this);
 
                 document.getElementById('app').innerHTML =
                     '<p style="text-align:center; color:#6b7280;">Loading…</p>';
@@ -1108,8 +1023,6 @@
                 return result.data;
             }
 
-            // Helper: turn on/off a button's loading state without blowing away
-            // the button element (we restore its label when done).
             setButtonLoading(btn, loadingText) {
                 if (!btn) return;
                 if (loadingText) {
@@ -1122,7 +1035,6 @@
                 }
             }
 
-            // Helper: show an inline error in the Rides tab instead of an alert().
             showCancelError(message) {
                 const errDiv = document.getElementById('cancelError');
                 if (errDiv) {
@@ -1161,10 +1073,38 @@
                 }
             }
 
-            setPreviewRole(role) {
-                this.ui.previewRole = role;
-                const el = document.getElementById('ridePreview');
-                if (el) el.innerHTML = this.ui.renderRidePreview();
+            async refresh() {
+                try {
+                    await this.store.init();
+                    this.ui.switchTab('rides');
+                } catch (err) {
+                    console.error('Refresh failed:', err);
+                    this.showCancelError('Refresh failed: ' + err.message);
+                }
+            }
+
+            async startRide(rideId, btn) {
+                this.setButtonLoading(btn, 'Starting…');
+                try {
+                    await this.store.updateRide(rideId, { status: 'active' });
+                    this.ui.switchTab('rides');
+                } catch (err) {
+                    console.error('Start ride failed:', err);
+                    this.setButtonLoading(btn, null);
+                    this.showCancelError('Could not start ride: ' + err.message);
+                }
+            }
+
+            async completeRide(rideId, btn) {
+                this.setButtonLoading(btn, 'Completing…');
+                try {
+                    await this.store.updateRide(rideId, { status: 'completed' });
+                    this.ui.switchTab('rides');
+                } catch (err) {
+                    console.error('Complete ride failed:', err);
+                    this.setButtonLoading(btn, null);
+                    this.showCancelError('Could not complete ride: ' + err.message);
+                }
             }
         }
 
@@ -1172,11 +1112,7 @@
         const app = new App();
         window.app = app;
 
-        console.log('🚗 Nexar App initialized — connecting to Supabase…');
-        console.log('🔐 Real accounts via Supabase Auth.');
-        console.log('🗄️ Users, rides, schedules & driver log live in Supabase.');
-        console.log('🛣️ Matching uses route-overlap (perpendicular distance to driver route).');
-        console.log('❌ Cancellation: drivers/passengers can cancel from the Rides tab.');
+        console.log('🚗 Nexar App initialized.');
     </script>
 </body>
 </html>
