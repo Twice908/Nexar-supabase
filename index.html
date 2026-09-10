@@ -319,6 +319,19 @@
 
     <script>
         // ==================== SUPABASE CONFIG ====================
+        // TEMPORARY DEBUG AID — remove once registration/login are confirmed working.
+        // Surfaces ANY uncaught error (including failed Supabase calls that slip
+        // past a try/catch) as a visible alert, since mobile browsers don't give
+        // easy access to the JS console.
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            alert('Unhandled error: ' + (event.reason && event.reason.message ? event.reason.message : event.reason));
+        });
+        window.addEventListener('error', (event) => {
+            console.error('Uncaught error:', event.error || event.message);
+            alert('Script error: ' + (event.error && event.error.message ? event.error.message : event.message));
+        });
+
         const SUPABASE_URL = 'https://dhozznjdpzwmjfcwyhte.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM';
 
