@@ -1077,7 +1077,11 @@
 
                 document.getElementById('onboardingForm').addEventListener('submit', (e) => {
                     e.preventDefault();
-                    this.handleOnboarding();
+                    // BUGFIX: this was `this.handleOnboarding()`, but `this` here is the
+                    // UIRenderer instance — handleOnboarding lives on the App instance.
+                    // Use the global `app` reference instead (same pattern as the
+                    // onclick="app.X()" handlers used elsewhere in this file).
+                    app.handleOnboarding();
                 });
             }
 
