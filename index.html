@@ -319,28 +319,22 @@
 
     <script>
         // ==================== SUPABASE CONFIG ====================
-        // TEMPORARY DEBUG AID — remove once registration/login are confirmed working.
-        // Surfaces ANY uncaught error (including failed Supabase calls that slip
-        // past a try/catch) as a visible alert, since mobile browsers don't give
-        // easy access to the JS console.
-        window.addEventListener('unhandledrejection', (event) => {
-            console.error('Unhandled promise rejection:', event.reason);
-            alert('Unhandled error: ' + (event.reason && event.reason.message ? event.reason.message : event.reason));
-        });
-        window.addEventListener('error', (event) => {
-            console.error('Uncaught error:', event.error || event.message);
-            alert('Script error: ' + (event.error && event.error.message ? event.error.message : event.message));
-        });
-
         const SUPABASE_URL = 'https://dhozznjdpzwmjfcwyhte.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM';
+
+        // Set once a user logs in / registers; supabaseFetch sends this instead of
+        // the anon key so Row Level Security's `to authenticated` policies apply.
+        let currentAccessToken = null;
+        function setAuthToken(token) {
+            currentAccessToken = token;
+        }
 
         async function supabaseFetch(path, options = {}) {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
                 ...options,
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Authorization': `Bearer ${currentAccessToken || SUPABASE_ANON_KEY}`,
                     'Content-Type': 'application/json',
                     ...(options.headers || {})
                 }
@@ -353,9 +347,27 @@
             return res.json();
         }
 
+        // Talks to Supabase Auth (GoTrue) for signup/login — separate endpoint from
+        // the REST API above, and always uses the anon key (there's no user token yet).
+        async function supabaseAuthFetch(path, options = {}) {
+            const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+                ...options,
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    ...(options.headers || {})
+                }
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error_description || data.msg || data.error || `Auth error ${res.status}`);
+            }
+            return data;
+        }
+
         // camelCase (JS) <-> snake_case (Postgres) field mapping
         function userToDb(u) {
-            return {
+            const payload = {
                 email: u.email,
                 name: u.name,
                 mobile: u.mobile,
@@ -369,6 +381,10 @@
                 vacant_seats: u.vacantSeats,
                 updated_at: new Date().toISOString()
             };
+            // Only set auth_id when we actually have it (at signup). Omitting it on
+            // profile-edit saves means the upsert leaves the existing value alone.
+            if (u.authId) payload.auth_id = u.authId;
+            return payload;
         }
         function userFromDb(row) {
             return {
@@ -383,6 +399,7 @@
                 carModel: row.car_model,
                 carNumber: row.car_number,
                 vacantSeats: row.vacant_seats,
+                authId: row.auth_id,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };
@@ -970,7 +987,10 @@
                         this.currentUser = user;
                         this.currentView = 'dashboard';
                     } else {
-                        this.currentView = 'login';
+                        // Authenticated with Supabase Auth, but no carpool profile saved
+                        // yet — send them to onboarding to finish it, not to login (they
+                        // ARE logged in; bouncing to login would be a confusing dead end).
+                        this.currentView = 'onboarding';
                     }
                 } else if (this.currentView !== 'onboarding') {
                     // BUGFIX: previously this always forced 'login', even right after
@@ -1000,12 +1020,12 @@
                         <p>Smart Carpooling Solution</p>
                     </div>
                     <div class="form-group">
-                        <label for="accessCode">Access Code</label>
-                        <input type="password" id="accessCode" placeholder="Enter access code" value="Nexar@app">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com">
                     </div>
                     <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" placeholder="Enter username" value="demo_user">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter password">
                     </div>
                     <div id="loginError" class="error"></div>
                     <button class="btn btn-primary" onclick="app.handleLogin()">Login</button>
@@ -1028,6 +1048,10 @@
                         <div class="form-group">
                             <label for="email">Email</label>
                             <input type="email" id="email" value="${user.email || ''}" placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="At least 6 characters">
                         </div>
                         <div class="form-group">
                             <label for="mobile">Mobile Number</label>
@@ -1479,49 +1503,86 @@
             }
 
             async start() {
-                try {
-                    await this.store.init();
-                } catch (err) {
-                    console.error('Failed to load data from Supabase:', err);
-                    document.getElementById('app').innerHTML =
-                        '<p style="text-align:center; color:#ef4444;">Couldn\'t connect to the database. Check your connection and reload.</p>';
-                    return;
+                const session = this.store.getSession();
+
+                if (session.loggedIn && session.accessToken) {
+                    setAuthToken(session.accessToken);
+                    try {
+                        await this.store.init();
+                        const user = this.store.getUserByEmail(session.email);
+                        if (user) {
+                            this.ui.currentUser = user;
+                            this.ui.currentView = 'dashboard';
+                            this.ui.render();
+                            this.initializeAutoScheduling();
+                            return;
+                        }
+                    } catch (err) {
+                        // Supabase access tokens expire (~1 hour) — a saved session may
+                        // simply be stale. Fall back to a fresh login rather than getting
+                        // stuck on "Loading…". (Refresh-token renewal isn't wired up yet —
+                        // a good next step once this basic flow is confirmed working.)
+                        console.error('Saved session is no longer valid, please log in again:', err);
+                        this.store.clearSession();
+                        setAuthToken(null);
+                    }
                 }
+
+                this.ui.currentView = 'login';
                 this.ui.render();
-                this.initializeAutoScheduling();
             }
 
-            handleLogin() {
-                const accessCode = document.getElementById('accessCode').value;
-                const username = document.getElementById('username').value;
+            async handleLogin() {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
                 const errorDiv = document.getElementById('loginError');
+                errorDiv.classList.remove('show');
 
-                if (accessCode !== 'Nexar@app') {
-                    errorDiv.textContent = 'Invalid access code';
+                if (!email || !password) {
+                    errorDiv.textContent = 'Enter both email and password';
                     errorDiv.classList.add('show');
                     return;
                 }
 
-                const users = this.store.getUsers();
-                const user = users.find(u => u.email === username || u.name === username);
+                try {
+                    const authRes = await supabaseAuthFetch('token?grant_type=password', {
+                        method: 'POST',
+                        body: JSON.stringify({ email, password })
+                    });
+                    setAuthToken(authRes.access_token);
 
-                if (!user) {
-                    errorDiv.textContent = 'User not found. Please register first.';
+                    // Now that we're authenticated, fetch the shared data (RLS requires login).
+                    await this.store.init();
+                    const user = this.store.getUserByEmail(email);
+
+                    const session = {
+                        loggedIn: true,
+                        email,
+                        accessToken: authRes.access_token,
+                        refreshToken: authRes.refresh_token,
+                        authId: authRes.user.id,
+                        loginTime: new Date().toISOString()
+                    };
+                    this.store.saveSession(session);
+
+                    if (!user) {
+                        // Account exists in Supabase Auth but has no carpool profile yet
+                        // (e.g. signup was interrupted before the profile row saved).
+                        this.ui.currentUser = { email };
+                        this.ui.currentView = 'onboarding';
+                        this.ui.render();
+                        return;
+                    }
+
+                    this.ui.currentUser = user;
+                    this.ui.currentView = 'dashboard';
+                    this.ui.render();
+                    this.initializeAutoScheduling();
+                } catch (err) {
+                    console.error('Login failed:', err);
+                    errorDiv.textContent = 'Login failed: ' + err.message;
                     errorDiv.classList.add('show');
-                    return;
                 }
-
-                const session = {
-                    loggedIn: true,
-                    email: user.email,
-                    username: username,
-                    loginTime: new Date().toISOString()
-                };
-
-                this.store.saveSession(session);
-                this.ui.currentUser = user;
-                this.ui.currentView = 'dashboard';
-                this.ui.render();
             }
 
             showOnboarding() {
@@ -1549,8 +1610,12 @@
                     carNumber: document.getElementById('carNumber').value,
                     vacantSeats: parseInt(document.getElementById('vacantSeats').value)
                 };
+                const password = document.getElementById('password').value;
 
                 const errors = this.onboarding.validateUserData(userData);
+                if (!password || password.length < 6) {
+                    errors.push('Password must be at least 6 characters');
+                }
                 if (errors.length > 0) {
                     const errorDiv = document.getElementById('onboardingError');
                     errorDiv.innerHTML = errors.join('<br>');
@@ -1560,19 +1625,40 @@
 
                 const errorDiv = document.getElementById('onboardingError');
                 try {
-                    const user = await this.onboarding.saveUser(userData);
+                    // 1. Create the real account in Supabase Auth.
+                    const authRes = await supabaseAuthFetch('signup', {
+                        method: 'POST',
+                        body: JSON.stringify({ email: userData.email, password })
+                    });
+
+                    if (!authRes.access_token) {
+                        // Email confirmation is required before a session is issued.
+                        errorDiv.style.color = 'var(--success)';
+                        errorDiv.textContent = 'Account created — check your email to confirm it, then log in.';
+                        errorDiv.classList.add('show');
+                        return;
+                    }
+                    setAuthToken(authRes.access_token);
+
+                    // 2. Save the carpool profile, linked to that auth account.
+                    const user = await this.onboarding.saveUser({ ...userData, authId: authRes.user.id });
 
                     const session = {
                         loggedIn: true,
                         email: user.email,
-                        username: user.name,
+                        accessToken: authRes.access_token,
+                        refreshToken: authRes.refresh_token,
+                        authId: authRes.user.id,
                         loginTime: new Date().toISOString()
                     };
-
                     this.store.saveSession(session);
-                    this.ui.currentUser = user;
+
+                    // 3. Now that we're authenticated, fetch the rest of the shared data.
+                    await this.store.init();
+                    this.ui.currentUser = this.store.getUserByEmail(user.email) || user;
                     this.ui.currentView = 'dashboard';
                     this.ui.render();
+                    this.initializeAutoScheduling();
                 } catch (err) {
                     console.error('Registration failed:', err);
                     errorDiv.textContent = `Registration failed: ${err.message}`;
@@ -1582,6 +1668,7 @@
 
             logout() {
                 this.store.clearSession();
+                setAuthToken(null);
                 this.ui.currentUser = null;
                 this.ui.currentView = 'login';
                 this.ui.render();
@@ -1665,105 +1752,13 @@
             }
         }
 
-        // ==================== BACKEND MOCK ====================
-        class BackendAPI {
-            constructor() {
-                this.baseURL = 'https://api.nexar.example.com';
-                this.endpoints = {
-                    login: '/auth/login',
-                    register: '/auth/register',
-                    userProfile: '/users/profile',
-                    updateProfile: '/users/update',
-                    rides: '/rides',
-                    rideDetails: '/rides/:id',
-                    schedule: '/schedule',
-                    matching: '/matching/run'
-                };
-            }
-
-            // Mock API methods (to be replaced with real API calls)
-            async login(username, accessCode) {
-                await this.delay(500);
-                return {
-                    success: true,
-                    data: {
-                        token: 'mock_token_' + Date.now(),
-                        user: {
-                            username,
-                            email: username
-                        }
-                    }
-                };
-            }
-
-            async register(userData) {
-                await this.delay(800);
-                return {
-                    success: true,
-                    data: {
-                        ...userData,
-                        id: 'user_' + Date.now(),
-                        createdAt: new Date().toISOString()
-                    }
-                };
-            }
-
-            async getUserProfile(userId) {
-                await this.delay(300);
-                return {
-                    success: true,
-                    data: JSON.parse(localStorage.getItem('nexar_users') || '[]')
-                        .find(u => u.email === userId)
-                };
-            }
-
-            async updateUserProfile(userId, updates) {
-                await this.delay(500);
-                return {
-                    success: true,
-                    data: { ...updates, updatedAt: new Date().toISOString() }
-                };
-            }
-
-            async getRides(userId) {
-                await this.delay(400);
-                const rides = JSON.parse(localStorage.getItem('nexar_rides') || '[]');
-                return {
-                    success: true,
-                    data: rides.filter(r =>
-                        r.driver === userId || r.passengers.includes(userId)
-                    )
-                };
-            }
-
-            async scheduleRides(tripType) {
-                await this.delay(1000);
-                return {
-                    success: true,
-                    data: {
-                        scheduled: true,
-                        tripType,
-                        timestamp: new Date().toISOString()
-                    }
-                };
-            }
-
-            delay(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-        }
-
         // ==================== INITIALIZE APP ====================
         const app = new App();
-        const backendAPI = new BackendAPI();
-
-        // Export for global access
         window.app = app;
-        window.backendAPI = backendAPI;
 
         console.log('🚗 Nexar App initialized — connecting to Supabase…');
-        console.log('📱 Access Code: Nexar@app');
-        console.log('🗄️ Users, rides, schedules & driver log now live in Supabase (shared across devices).');
+        console.log('🔐 Real accounts via Supabase Auth — register with an email + password.');
+        console.log('🗄️ Users, rides, schedules & driver log live in Supabase (shared across devices).');
         console.log('🔄 Auto-scheduling is running (Morning: 7-8PM, Evening: 2-3PM)');
         console.log('🛣️ Matching uses route-overlap (perpendicular distance to driver route) instead of home-only proximity.');
         console.log('❌ Cancellation: drivers/passengers can cancel from the Rides tab; driver cancellations trigger rematching.');
