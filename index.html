@@ -16,11 +16,7 @@
             --dark: #1f2937;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -43,21 +39,11 @@
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
+        .logo { text-align: center; margin-bottom: 30px; }
         .logo h1 {
             font-size: 2.5em;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -65,16 +51,9 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 5px;
         }
+        .logo p { color: var(--gray); font-size: 0.9em; }
 
-        .logo p {
-            color: var(--gray);
-            font-size: 0.9em;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
+        .form-group { margin-bottom: 20px; }
         label {
             display: block;
             margin-bottom: 8px;
@@ -82,7 +61,6 @@
             font-weight: 500;
             font-size: 0.9em;
         }
-
         input, select, textarea {
             width: 100%;
             padding: 12px;
@@ -91,7 +69,6 @@
             font-size: 14px;
             transition: all 0.3s;
         }
-
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
@@ -111,49 +88,28 @@
             text-decoration: none;
             display: inline-block;
         }
-
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
         }
-
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
         }
-
-        .btn-secondary {
-            background: var(--light);
-            color: var(--dark);
-            margin-top: 10px;
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-outline {
-            background: white;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-        }
+        .btn-secondary { background: var(--light); color: var(--dark); margin-top: 10px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
 
         .error {
             color: var(--danger);
             font-size: 0.85em;
             margin-top: 5px;
+            margin-bottom: 10px;
             display: none;
         }
-
-        .error.show {
-            display: block;
-        }
+        .error.show { display: block; }
 
         .tabs {
             display: flex;
@@ -161,7 +117,6 @@
             margin-bottom: 30px;
             border-bottom: 2px solid var(--light);
         }
-
         .tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -170,25 +125,11 @@
             border-bottom: 3px solid transparent;
             transition: all 0.3s;
         }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .profile-card {
             background: var(--light);
@@ -196,7 +137,6 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-
         .profile-item {
             display: flex;
             justify-content: space-between;
@@ -204,22 +144,13 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #e5e7eb;
         }
-
         .profile-item:last-child {
             border-bottom: none;
             margin-bottom: 0;
             padding-bottom: 0;
         }
-
-        .profile-label {
-            color: var(--gray);
-            font-weight: 500;
-        }
-
-        .profile-value {
-            font-weight: 600;
-            color: var(--dark);
-        }
+        .profile-label { color: var(--gray); font-weight: 500; }
+        .profile-value { font-weight: 600; color: var(--dark); }
 
         .ride-card {
             background: white;
@@ -229,32 +160,27 @@
             margin-bottom: 15px;
             transition: all 0.3s;
         }
-
         .ride-card:hover {
             border-color: var(--primary);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-
         .ride-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
-
         .ride-status {
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.85em;
             font-weight: 600;
         }
-
         .status-matching { background: #fef3c7; color: #92400e; }
         .status-matched { background: #dbeafe; color: #1e40af; }
         .status-started { background: #e0e7ff; color: #3730a3; }
         .status-active { background: #d1fae5; color: #065f46; }
         .status-completed { background: #e5e7eb; color: #374151; }
-        /* New statuses introduced by cancellation handling */
         .status-cancelled { background: #fee2e2; color: #991b1b; }
         .status-no-match { background: #ffedd5; color: #9a3412; }
 
@@ -266,7 +192,6 @@
             position: relative;
             min-height: 200px;
         }
-
         .map-point {
             position: absolute;
             width: 20px;
@@ -277,18 +202,9 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             cursor: pointer;
         }
-
-        .map-point.driver {
-            background: var(--success);
-        }
-
-        .map-point.passenger {
-            background: var(--warning);
-        }
-
-        .map-point.destination {
-            background: var(--danger);
-        }
+        .map-point.driver { background: var(--success); }
+        .map-point.passenger { background: var(--warning); }
+        .map-point.destination { background: var(--danger); }
 
         .notification {
             background: #fef3c7;
@@ -300,16 +216,8 @@
             align-items: center;
             gap: 10px;
         }
-
-        .notification-icon {
-            font-size: 1.5em;
-        }
-
-        .notification-text {
-            flex: 1;
-            color: #92400e;
-            font-weight: 500;
-        }
+        .notification-icon { font-size: 1.5em; }
+        .notification-text { flex: 1; color: #92400e; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -322,12 +230,8 @@
         const SUPABASE_URL = 'https://dhozznjdpzwmjfcwyhte.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM';
 
-        // Set once a user logs in / registers; supabaseFetch sends this instead of
-        // the anon key so Row Level Security's `to authenticated` policies apply.
         let currentAccessToken = null;
-        function setAuthToken(token) {
-            currentAccessToken = token;
-        }
+        function setAuthToken(token) { currentAccessToken = token; }
 
         async function supabaseFetch(path, options = {}) {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -347,8 +251,6 @@
             return res.json();
         }
 
-        // Talks to Supabase Auth (GoTrue) for signup/login — separate endpoint from
-        // the REST API above, and always uses the anon key (there's no user token yet).
         async function supabaseAuthFetch(path, options = {}) {
             const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
                 ...options,
@@ -365,7 +267,6 @@
             return data;
         }
 
-        // camelCase (JS) <-> snake_case (Postgres) field mapping
         function userToDb(u) {
             const payload = {
                 email: u.email,
@@ -381,8 +282,6 @@
                 vacant_seats: u.vacantSeats,
                 updated_at: new Date().toISOString()
             };
-            // Only set auth_id when we actually have it (at signup). Omitting it on
-            // profile-edit saves means the upsert leaves the existing value alone.
             if (u.authId) payload.auth_id = u.authId;
             return payload;
         }
@@ -435,13 +334,6 @@
         }
 
         // ==================== DATA MANAGEMENT ====================
-        // Shared data (users, rides, schedules, driver log) now lives in Supabase —
-        // every device reads/writes the same rows. Reads (getUsers, getRides, etc.)
-        // stay synchronous by reading from an in-memory cache; call init() once at
-        // startup to populate it, and every write method updates the cache after a
-        // successful Supabase call so later synchronous reads see the change.
-        // The login "session" (who's logged in on THIS device) stays in localStorage —
-        // it's per-device state, not shared data.
         class DataStore {
             constructor() {
                 this.cache = { users: [], rides: [], schedules: [], driverLog: {} };
@@ -473,13 +365,8 @@
                 });
             }
 
-            getUsers() {
-                return this.cache.users;
-            }
-
-            getUserByEmail(email) {
-                return this.cache.users.find(u => u.email === email);
-            }
+            getUsers() { return this.cache.users; }
+            getUserByEmail(email) { return this.cache.users.find(u => u.email === email); }
 
             async saveUser(user) {
                 const rows = await supabaseFetch('users?on_conflict=email', {
@@ -493,21 +380,11 @@
                 return saved;
             }
 
-            getSession() {
-                return JSON.parse(localStorage.getItem('nexar_sessions') || '{}');
-            }
+            getSession() { return JSON.parse(localStorage.getItem('nexar_sessions') || '{}'); }
+            saveSession(session) { localStorage.setItem('nexar_sessions', JSON.stringify(session)); }
+            clearSession() { localStorage.removeItem('nexar_sessions'); }
 
-            saveSession(session) {
-                localStorage.setItem('nexar_sessions', JSON.stringify(session));
-            }
-
-            clearSession() {
-                localStorage.removeItem('nexar_sessions');
-            }
-
-            getRides() {
-                return this.cache.rides;
-            }
+            getRides() { return this.cache.rides; }
 
             async saveRide(ride) {
                 const rows = await supabaseFetch('rides', {
@@ -539,9 +416,7 @@
                 return saved;
             }
 
-            getSchedules() {
-                return this.cache.schedules;
-            }
+            getSchedules() { return this.cache.schedules; }
 
             async saveSchedule(schedule) {
                 const rows = await supabaseFetch('schedules', {
@@ -579,41 +454,21 @@
 
         // ==================== ONBOARDING MANAGER ====================
         class OnboardingManager {
-            constructor(store) {
-                this.store = store;
-            }
+            constructor(store) { this.store = store; }
 
             validateUserData(data) {
                 const errors = [];
-
-                if (!data.email || !data.email.includes('@')) {
-                    errors.push('Valid email is required');
-                }
-                if (!data.mobile || data.mobile.length < 10) {
-                    errors.push('Valid mobile number is required');
-                }
-                if (!data.name || data.name.length < 2) {
-                    errors.push('Name is required');
-                }
-                if (!data.homeZone) {
-                    errors.push('Home zone is required');
-                }
-                if (!data.officeAddress) {
-                    errors.push('Office address is required');
-                }
-                if (!data.officeEntryTime || !data.officeExitTime) {
-                    errors.push('Office timings are required');
-                }
-                if (!data.carCompany || !data.carModel) {
-                    errors.push('Car details are required');
-                }
+                if (!data.email || !data.email.includes('@')) errors.push('Valid email is required');
+                if (!data.mobile || data.mobile.length < 10) errors.push('Valid mobile number is required');
+                if (!data.name || data.name.length < 2) errors.push('Name is required');
+                if (!data.homeZone) errors.push('Home zone is required');
+                if (!data.officeAddress) errors.push('Office address is required');
+                if (!data.officeEntryTime || !data.officeExitTime) errors.push('Office timings are required');
+                if (!data.carCompany || !data.carModel) errors.push('Car details are required');
                 if (!data.carNumber || !data.carNumber.match(/^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/)) {
                     errors.push('Valid car number plate is required (e.g., MH14KM1234)');
                 }
-                if (data.vacantSeats < 2 || data.vacantSeats > 4) {
-                    errors.push('Vacant seats must be between 2 and 4');
-                }
-
+                if (data.vacantSeats < 2 || data.vacantSeats > 4) errors.push('Vacant seats must be between 2 and 4');
                 return errors;
             }
 
@@ -627,27 +482,18 @@
             }
         }
 
-        // ==================== MATCHING ALGORITHM (client-side remainder) ====================
-        // The real matching/scheduling/cancellation logic now lives entirely in the
-        // "matching-engine" Supabase Edge Function (matching-engine.ts), triggered by
-        // pg_cron on a schedule and called directly by the app on cancellation. This
-        // class only keeps the one small helper still used client-side (the Home tab's
-        // ride preview) — keeping a second copy of the real algorithm here would let
-        // the client and server versions quietly drift apart over time.
+        // ==================== MATCHING ALGORITHM (client-side helpers) ====================
         class MatchingAlgorithm {
-            constructor(store) {
-                this.store = store;
-            }
+            constructor(store) { this.store = store; }
 
             calculateDropoffTime(pickupTime) {
                 const [hours, minutes] = pickupTime.split(':').map(Number);
-                const dropoffMinutes = hours * 60 + minutes + 30; // Assume 30 min ride
+                const dropoffMinutes = hours * 60 + minutes + 30;
                 const dropoffHours = Math.floor(dropoffMinutes / 60);
                 const dropoffMins = dropoffMinutes % 60;
                 return `${String(dropoffHours).padStart(2, '0')}:${String(dropoffMins).padStart(2, '0')}`;
             }
         }
-
 
         // ==================== UI RENDERER ====================
         class UIRenderer {
@@ -658,7 +504,7 @@
                 this.currentUser = null;
                 this.currentView = 'login';
                 this.activeTab = 'home';
-                this.previewRole = 'driver'; // for the Home-tab "see as Nexar/Nexirian" preview
+                this.previewRole = 'driver';
             }
 
             render() {
@@ -671,29 +517,16 @@
                         this.currentUser = user;
                         this.currentView = 'dashboard';
                     } else {
-                        // Authenticated with Supabase Auth, but no carpool profile saved
-                        // yet — send them to onboarding to finish it, not to login (they
-                        // ARE logged in; bouncing to login would be a confusing dead end).
                         this.currentView = 'onboarding';
                     }
                 } else if (this.currentView !== 'onboarding') {
-                    // BUGFIX: previously this always forced 'login', even right after
-                    // showOnboarding() had just set currentView to 'onboarding' (there's
-                    // no session yet during registration, so the form never rendered).
-                    // Now we only default to 'login' when we're not mid-registration.
                     this.currentView = 'login';
                 }
 
                 switch (this.currentView) {
-                    case 'login':
-                        this.renderLogin(app);
-                        break;
-                    case 'onboarding':
-                        this.renderOnboarding(app);
-                        break;
-                    case 'dashboard':
-                        this.renderDashboard(app);
-                        break;
+                    case 'login': this.renderLogin(app); break;
+                    case 'onboarding': this.renderOnboarding(app); break;
+                    case 'dashboard': this.renderDashboard(app); break;
                 }
             }
 
@@ -785,10 +618,6 @@
 
                 document.getElementById('onboardingForm').addEventListener('submit', (e) => {
                     e.preventDefault();
-                    // BUGFIX: this was `this.handleOnboarding()` (wrong `this` — see below),
-                    // then `app.handleOnboarding()` — but this method's own parameter is
-                    // ALSO named `app` (the DOM container element passed in from render()),
-                    // which shadows the global App instance. Use window.app explicitly.
                     window.app.handleOnboarding();
                 });
             }
@@ -813,30 +642,12 @@
                         <h2 style="margin-bottom: 20px;">Welcome, ${user.name}</h2>
                         <div class="profile-card">
                             <h3 style="margin-bottom: 15px;">Your Profile</h3>
-                            <div class="profile-item">
-                                <span class="profile-label">Email</span>
-                                <span class="profile-value">${user.email}</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">Mobile</span>
-                                <span class="profile-value">${user.mobile}</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">Home Zone</span>
-                                <span class="profile-value">${user.homeZone}</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">Office</span>
-                                <span class="profile-value">${user.officeAddress}</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">Car</span>
-                                <span class="profile-value">${user.carCompany} ${user.carModel}</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">Car Number</span>
-                                <span class="profile-value">${user.carNumber}</span>
-                            </div>
+                            <div class="profile-item"><span class="profile-label">Email</span><span class="profile-value">${user.email}</span></div>
+                            <div class="profile-item"><span class="profile-label">Mobile</span><span class="profile-value">${user.mobile}</span></div>
+                            <div class="profile-item"><span class="profile-label">Home Zone</span><span class="profile-value">${user.homeZone}</span></div>
+                            <div class="profile-item"><span class="profile-label">Office</span><span class="profile-value">${user.officeAddress}</span></div>
+                            <div class="profile-item"><span class="profile-label">Car</span><span class="profile-value">${user.carCompany} ${user.carModel}</span></div>
+                            <div class="profile-item"><span class="profile-label">Car Number</span><span class="profile-value">${user.carNumber}</span></div>
                         </div>
                         <div class="notification">
                             <span class="notification-icon">🚗</span>
@@ -863,10 +674,6 @@
                 `;
             }
 
-            // ---- Ride preview (Home tab "see as Nexar / Nexirian" toggle) ----
-
-            // Builds evenly-spaced dummy pin positions along a diagonal from the
-            // driver's start point to the destination, for the map placeholder.
             buildRoutePoints(driverName, passengerNames, destinationLabel) {
                 const stops = [
                     { type: 'driver', label: driverName },
@@ -880,7 +687,6 @@
                 });
             }
 
-            // Renders a map-placeholder with dummy pins + a small legend.
             renderMapPreview(points) {
                 const dotColor = { driver: 'var(--success)', passenger: 'var(--warning)', destination: 'var(--danger)' };
                 const pins = points.map(p =>
@@ -897,8 +703,6 @@
                 `;
             }
 
-            // Builds a sample ride card (not a real scheduled ride) so the user can see
-            // what a Nexar (driver) view vs. a Nexirian (passenger) view looks like.
             renderRidePreview() {
                 const currentUser = this.currentUser;
                 const otherUsers = this.store.getUsers().filter(u => u.email !== currentUser.email);
@@ -935,9 +739,7 @@
                         ${role === 'passenger' ? `<p><strong>Nexar (Driver):</strong> ${driver.name} — ${driver.carCompany} ${driver.carModel} (${driver.carNumber})</p>` : ''}
                         <p><strong>Pickup Time:</strong> ${pickupTime}</p>
                         <p><strong>Dropoff Time:</strong> ${dropoffTime}</p>
-
                         ${this.renderMapPreview(this.buildRoutePoints(driver.name, passengers.map(p => p.name), 'Office'))}
-
                         ${role === 'driver' ? `
                             <div style="margin-top:15px;">
                                 <p><strong>Passenger Details:</strong></p>
@@ -958,6 +760,7 @@
                 return `
                     <div class="tab-content active" id="ridesContent">
                         <h2 style="margin-bottom: 20px;">Your Rides</h2>
+                        <div id="cancelError" class="error"></div>
                         ${userRides.length === 0 ?
                             '<p>No rides scheduled yet.</p>' :
                             userRides.map(ride => this.renderRideCard(ride)).join('')
@@ -966,27 +769,72 @@
                 `;
             }
 
-            // Human-friendly label for a ride's status badge.
             getStatusLabel(status) {
                 if (status === 'no match') return 'No matching found – commute yourself';
                 return status.charAt(0).toUpperCase() + status.slice(1);
             }
 
-            // Cancel button shown only while a ride is still in a state that can be cancelled.
             getCancelButtonHTML(ride, isDriver) {
                 const cancellableStatuses = ['matched', 'started', 'active'];
                 if (!cancellableStatuses.includes(ride.status)) return '';
 
                 if (isDriver) {
-                    return `<button class="btn btn-danger" style="margin-top:15px;" onclick="app.cancelAsDriver('${ride.id}')">Cancel Ride (Can't Drive)</button>`;
+                    return `<button class="btn btn-danger" style="margin-top:15px;" onclick="app.cancelAsDriver('${ride.id}', this)">Cancel Ride (Can't Drive)</button>`;
                 }
-                return `<button class="btn btn-outline" style="margin-top:15px;" onclick="app.cancelAsPassenger('${ride.id}')">Cancel My Seat</button>`;
+                return `<button class="btn btn-outline" style="margin-top:15px;" onclick="app.cancelAsPassenger('${ride.id}', this)">Cancel My Seat</button>`;
             }
 
             renderRideCard(ride) {
                 const isDriver = ride.driver === this.currentUser.email;
+
+                // Special case: user has no matched ride today. Nothing to cancel,
+                // no map to show, no driver info — just a clear message.
+                if (ride.status === 'no match') {
+                    return `
+                        <div class="ride-card">
+                            <div class="ride-header">
+                                <div>
+                                    <strong>${ride.tripType === 'morning' ? '🌅 Morning Ride' : '🌆 Evening Ride'}</strong>
+                                    <p style="font-size: 0.9em; color: #6b7280;">${ride.date}</p>
+                                </div>
+                                <span class="ride-status status-no-match">${this.getStatusLabel(ride.status)}</span>
+                            </div>
+                            <p>No Nexar could serve your route today. Please arrange your own commute.</p>
+                        </div>
+                    `;
+                }
+
+                // Special case: driver cancelled and no rematch succeeded — the
+                // passenger is stranded. Show the reason plainly.
+                if (ride.status === 'cancelled') {
+                    return `
+                        <div class="ride-card">
+                            <div class="ride-header">
+                                <div>
+                                    <strong>${ride.tripType === 'morning' ? '🌅 Morning Ride' : '🌆 Evening Ride'}</strong>
+                                    <p style="font-size: 0.9em; color: #6b7280;">${ride.date}</p>
+                                </div>
+                                <span class="ride-status status-cancelled">Cancelled</span>
+                            </div>
+                            <p>${ride.cancellationReason || 'This ride was cancelled.'}</p>
+                        </div>
+                    `;
+                }
+
                 const role = isDriver ? 'Nexar (Driver)' : 'Nexirian (Passenger)';
                 const statusClass = `status-${ride.status.toLowerCase().replace(' ', '-')}`;
+
+                // For passengers: show the driver's identifying details so they know
+                // whose car to look for.
+                const driverUser = this.store.getUserByEmail(ride.driver);
+                const driverInfoHTML = (!isDriver && driverUser) ? `
+                    <div style="margin-top:15px; padding:12px; background:#f9fafb; border-radius:10px;">
+                        <p style="font-size:0.85em; color:#6b7280; margin-bottom:6px;"><strong>Your Nexar</strong></p>
+                        <p><strong>${driverUser.name}</strong></p>
+                        <p>${driverUser.carCompany} ${driverUser.carModel} — <strong>${driverUser.carNumber}</strong></p>
+                        <p>📞 ${driverUser.mobile}</p>
+                    </div>
+                ` : '';
 
                 return `
                     <div class="ride-card">
@@ -1008,12 +856,14 @@
                             ride.tripType === 'morning' ? 'Office' : 'Home'
                         ))}
 
+                        ${driverInfoHTML}
+
                         ${isDriver ? `
                             <div style="margin-top: 15px;">
                                 <p><strong>Passengers:</strong></p>
                                 ${ride.passengers.map(p => {
                                     const passenger = this.store.getUserByEmail(p);
-                                    return passenger ? `<p>• ${passenger.name} (${passenger.homeZone})</p>` : '';
+                                    return passenger ? `<p>• ${passenger.name} (${passenger.homeZone}) — ${passenger.mobile}</p>` : '';
                                 }).join('')}
                             </div>
                         ` : ''}
@@ -1039,46 +889,16 @@
 
             getSettingsFormHTML(user) {
                 return `
-                    <div class="form-group">
-                        <label for="editName">Full Name</label>
-                        <input type="text" id="editName" value="${user.name}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editEmail">Email</label>
-                        <input type="email" id="editEmail" value="${user.email}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="editMobile">Mobile Number</label>
-                        <input type="tel" id="editMobile" value="${user.mobile}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editHomeZone">Home Zone</label>
-                        <input type="text" id="editHomeZone" value="${user.homeZone}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editOfficeAddress">Office Address</label>
-                        <textarea id="editOfficeAddress" rows="3">${user.officeAddress}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="editOfficeEntryTime">Office Entry Time</label>
-                        <input type="time" id="editOfficeEntryTime" value="${user.officeEntryTime}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editOfficeExitTime">Office Exit Time</label>
-                        <input type="time" id="editOfficeExitTime" value="${user.officeExitTime}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editCarCompany">Car Company</label>
-                        <input type="text" id="editCarCompany" value="${user.carCompany}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editCarModel">Car Model</label>
-                        <input type="text" id="editCarModel" value="${user.carModel}">
-                    </div>
-                    <div class="form-group">
-                        <label for="editCarNumber">Car Number Plate</label>
-                        <input type="text" id="editCarNumber" value="${user.carNumber}">
-                    </div>
+                    <div class="form-group"><label for="editName">Full Name</label><input type="text" id="editName" value="${user.name}"></div>
+                    <div class="form-group"><label for="editEmail">Email</label><input type="email" id="editEmail" value="${user.email}" readonly></div>
+                    <div class="form-group"><label for="editMobile">Mobile Number</label><input type="tel" id="editMobile" value="${user.mobile}"></div>
+                    <div class="form-group"><label for="editHomeZone">Home Zone</label><input type="text" id="editHomeZone" value="${user.homeZone}"></div>
+                    <div class="form-group"><label for="editOfficeAddress">Office Address</label><textarea id="editOfficeAddress" rows="3">${user.officeAddress}</textarea></div>
+                    <div class="form-group"><label for="editOfficeEntryTime">Office Entry Time</label><input type="time" id="editOfficeEntryTime" value="${user.officeEntryTime}"></div>
+                    <div class="form-group"><label for="editOfficeExitTime">Office Exit Time</label><input type="time" id="editOfficeExitTime" value="${user.officeExitTime}"></div>
+                    <div class="form-group"><label for="editCarCompany">Car Company</label><input type="text" id="editCarCompany" value="${user.carCompany}"></div>
+                    <div class="form-group"><label for="editCarModel">Car Model</label><input type="text" id="editCarModel" value="${user.carModel}"></div>
+                    <div class="form-group"><label for="editCarNumber">Car Number Plate</label><input type="text" id="editCarNumber" value="${user.carNumber}"></div>
                     <div class="form-group">
                         <label for="editVacantSeats">Vacant Seats</label>
                         <select id="editVacantSeats">
@@ -1092,19 +912,14 @@
 
             switchTab(tabName) {
                 this.activeTab = tabName;
-                const tabs = document.querySelectorAll('.tab');
-                tabs.forEach(tab => {
+                document.querySelectorAll('.tab').forEach(tab => {
                     tab.classList.toggle('active', tab.dataset.tab === tabName);
                 });
 
                 const content = document.getElementById('tabContent');
                 switch (tabName) {
-                    case 'home':
-                        content.innerHTML = this.renderHomeTab();
-                        break;
-                    case 'rides':
-                        content.innerHTML = this.renderRidesTab();
-                        break;
+                    case 'home': content.innerHTML = this.renderHomeTab(); break;
+                    case 'rides': content.innerHTML = this.renderRidesTab(); break;
                     case 'settings':
                         content.innerHTML = this.renderSettingsTab();
                         this.setupSettingsForm();
@@ -1167,7 +982,6 @@
                 this.matcher = new MatchingAlgorithm(this.store);
                 this.ui = new UIRenderer(this.store, this.onboarding, this.matcher);
 
-                // Bind methods
                 this.handleLogin = this.handleLogin.bind(this);
                 this.showOnboarding = this.showOnboarding.bind(this);
                 this.showLogin = this.showLogin.bind(this);
@@ -1178,8 +992,6 @@
                 this.cancelAsPassenger = this.cancelAsPassenger.bind(this);
                 this.setPreviewRole = this.setPreviewRole.bind(this);
 
-                // Show a loading message immediately, then fetch shared data from
-                // Supabase before rendering anything real.
                 document.getElementById('app').innerHTML =
                     '<p style="text-align:center; color:#6b7280;">Loading…</p>';
                 this.start();
@@ -1200,10 +1012,6 @@
                             return;
                         }
                     } catch (err) {
-                        // Supabase access tokens expire (~1 hour) — a saved session may
-                        // simply be stale. Fall back to a fresh login rather than getting
-                        // stuck on "Loading…". (Refresh-token renewal isn't wired up yet —
-                        // a good next step once this basic flow is confirmed working.)
                         console.error('Saved session is no longer valid, please log in again:', err);
                         this.store.clearSession();
                         setAuthToken(null);
@@ -1233,7 +1041,6 @@
                     });
                     setAuthToken(authRes.access_token);
 
-                    // Now that we're authenticated, fetch the shared data (RLS requires login).
                     await this.store.init();
                     const user = this.store.getUserByEmail(email);
 
@@ -1248,8 +1055,6 @@
                     this.store.saveSession(session);
 
                     if (!user) {
-                        // Account exists in Supabase Auth but has no carpool profile yet
-                        // (e.g. signup was interrupted before the profile row saved).
                         this.ui.currentUser = { email };
                         this.ui.currentView = 'onboarding';
                         this.ui.render();
@@ -1294,9 +1099,7 @@
                 const password = document.getElementById('password').value;
 
                 const errors = this.onboarding.validateUserData(userData);
-                if (!password || password.length < 6) {
-                    errors.push('Password must be at least 6 characters');
-                }
+                if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
                 if (errors.length > 0) {
                     const errorDiv = document.getElementById('onboardingError');
                     errorDiv.innerHTML = errors.join('<br>');
@@ -1306,14 +1109,12 @@
 
                 const errorDiv = document.getElementById('onboardingError');
                 try {
-                    // 1. Create the real account in Supabase Auth.
                     const authRes = await supabaseAuthFetch('signup', {
                         method: 'POST',
                         body: JSON.stringify({ email: userData.email, password })
                     });
 
                     if (!authRes.access_token) {
-                        // Email confirmation is required before a session is issued.
                         errorDiv.style.color = 'var(--success)';
                         errorDiv.textContent = 'Account created — check your email to confirm it, then log in.';
                         errorDiv.classList.add('show');
@@ -1321,7 +1122,6 @@
                     }
                     setAuthToken(authRes.access_token);
 
-                    // 2. Save the carpool profile, linked to that auth account.
                     const user = await this.onboarding.saveUser({ ...userData, authId: authRes.user.id });
 
                     const session = {
@@ -1334,7 +1134,6 @@
                     };
                     this.store.saveSession(session);
 
-                    // 3. Now that we're authenticated, fetch the rest of the shared data.
                     await this.store.init();
                     this.ui.currentUser = this.store.getUserByEmail(user.email) || user;
                     this.ui.currentView = 'dashboard';
@@ -1354,14 +1153,8 @@
                 this.ui.render();
             }
 
-            switchTab(tabName) {
-                this.ui.switchTab(tabName);
-            }
+            switchTab(tabName) { this.ui.switchTab(tabName); }
 
-            // Calls the "matching-engine" Edge Function — cancellations now run
-            // server-side (same engine pg_cron uses for scheduled matching), so
-            // there's only ever one copy of the matching logic, not two that could
-            // drift out of sync.
             async callMatchingEngine(payload) {
                 const res = await fetch(`${SUPABASE_URL}/functions/v1/matching-engine`, {
                     method: 'POST',
@@ -1379,46 +1172,64 @@
                 return result.data;
             }
 
-            // Driver cancels a ride they were assigned to drive.
-            async cancelAsDriver(rideId) {
-                try {
-                    await this.callMatchingEngine({ action: 'cancelDriver', rideId });
-                } catch (err) {
-                    console.error('Cancel (driver) failed:', err);
-                    alert('Could not cancel this ride: ' + err.message);
+            // Helper: turn on/off a button's loading state without blowing away
+            // the button element (we restore its label when done).
+            setButtonLoading(btn, loadingText) {
+                if (!btn) return;
+                if (loadingText) {
+                    btn.dataset.originalText = btn.textContent;
+                    btn.textContent = loadingText;
+                    btn.disabled = true;
+                } else {
+                    btn.textContent = btn.dataset.originalText || btn.textContent;
+                    btn.disabled = false;
                 }
-                await this.store.init();
-                this.ui.switchTab('rides');
             }
 
-            // Passenger cancels their seat on a ride.
-            async cancelAsPassenger(rideId) {
+            // Helper: show an inline error in the Rides tab instead of an alert().
+            showCancelError(message) {
+                const errDiv = document.getElementById('cancelError');
+                if (errDiv) {
+                    errDiv.textContent = message;
+                    errDiv.classList.add('show');
+                }
+            }
+
+            async cancelAsDriver(rideId, btn) {
+                this.setButtonLoading(btn, 'Cancelling…');
+                try {
+                    await this.callMatchingEngine({ action: 'cancelDriver', rideId });
+                    await this.store.init();
+                    this.ui.switchTab('rides');
+                } catch (err) {
+                    console.error('Cancel (driver) failed:', err);
+                    this.setButtonLoading(btn, null);
+                    this.showCancelError('Could not cancel this ride: ' + err.message);
+                }
+            }
+
+            async cancelAsPassenger(rideId, btn) {
+                this.setButtonLoading(btn, 'Cancelling…');
                 try {
                     await this.callMatchingEngine({
                         action: 'cancelPassenger',
                         rideId,
                         passengerEmail: this.ui.currentUser.email
                     });
+                    await this.store.init();
+                    this.ui.switchTab('rides');
                 } catch (err) {
                     console.error('Cancel (passenger) failed:', err);
-                    alert('Could not cancel your seat: ' + err.message);
+                    this.setButtonLoading(btn, null);
+                    this.showCancelError('Could not cancel your seat: ' + err.message);
                 }
-                await this.store.init();
-                this.ui.switchTab('rides');
             }
 
-            // Toggles the Home-tab "see as Nexar / Nexirian" ride preview.
             setPreviewRole(role) {
                 this.ui.previewRole = role;
                 const el = document.getElementById('ridePreview');
                 if (el) el.innerHTML = this.ui.renderRidePreview();
             }
-
-            // NOTE: client-side auto-scheduling has been removed. Matching now runs
-            // via pg_cron calling the "matching-engine" Edge Function directly on
-            // Supabase's servers (19:00 / 14:00 IST) — see the migration plan notes.
-            // Running it here too would create duplicate rides any time someone had
-            // the app open at those times.
         }
 
         // ==================== INITIALIZE APP ====================
@@ -1426,11 +1237,10 @@
         window.app = app;
 
         console.log('🚗 Nexar App initialized — connecting to Supabase…');
-        console.log('🔐 Real accounts via Supabase Auth — register with an email + password.');
-        console.log('🗄️ Users, rides, schedules & driver log live in Supabase (shared across devices).');
-        console.log('🔄 Auto-scheduling is running (Morning: 7-8PM, Evening: 2-3PM)');
-        console.log('🛣️ Matching uses route-overlap (perpendicular distance to driver route) instead of home-only proximity.');
-        console.log('❌ Cancellation: drivers/passengers can cancel from the Rides tab; driver cancellations trigger rematching.');
+        console.log('🔐 Real accounts via Supabase Auth.');
+        console.log('🗄️ Users, rides, schedules & driver log live in Supabase.');
+        console.log('🛣️ Matching uses route-overlap (perpendicular distance to driver route).');
+        console.log('❌ Cancellation: drivers/passengers can cancel from the Rides tab.');
     </script>
 </body>
 </html>
