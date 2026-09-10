@@ -1421,9 +1421,16 @@
                     return;
                 }
 
-                const saved = await this.store.saveUser(updatedData);
-                this.currentUser = saved;
-                this.render();
+                const errorDiv = document.getElementById('settingsError');
+                try {
+                    const saved = await this.store.saveUser(updatedData);
+                    this.currentUser = saved;
+                    this.render();
+                } catch (err) {
+                    console.error('Profile update failed:', err);
+                    errorDiv.textContent = `Update failed: ${err.message}`;
+                    errorDiv.classList.add('show');
+                }
             }
         }
 
@@ -1534,19 +1541,26 @@
                     return;
                 }
 
-                const user = await this.onboarding.saveUser(userData);
+                const errorDiv = document.getElementById('onboardingError');
+                try {
+                    const user = await this.onboarding.saveUser(userData);
 
-                const session = {
-                    loggedIn: true,
-                    email: user.email,
-                    username: user.name,
-                    loginTime: new Date().toISOString()
-                };
+                    const session = {
+                        loggedIn: true,
+                        email: user.email,
+                        username: user.name,
+                        loginTime: new Date().toISOString()
+                    };
 
-                this.store.saveSession(session);
-                this.ui.currentUser = user;
-                this.ui.currentView = 'dashboard';
-                this.ui.render();
+                    this.store.saveSession(session);
+                    this.ui.currentUser = user;
+                    this.ui.currentView = 'dashboard';
+                    this.ui.render();
+                } catch (err) {
+                    console.error('Registration failed:', err);
+                    errorDiv.textContent = `Registration failed: ${err.message}`;
+                    errorDiv.classList.add('show');
+                }
             }
 
             logout() {
