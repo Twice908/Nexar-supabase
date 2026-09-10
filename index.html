@@ -627,178 +627,16 @@
             }
         }
 
-        // ==================== MATCHING ALGORITHM ====================
+        // ==================== MATCHING ALGORITHM (client-side remainder) ====================
+        // The real matching/scheduling/cancellation logic now lives entirely in the
+        // "matching-engine" Supabase Edge Function (matching-engine.ts), triggered by
+        // pg_cron on a schedule and called directly by the app on cancellation. This
+        // class only keeps the one small helper still used client-side (the Home tab's
+        // ride preview) — keeping a second copy of the real algorithm here would let
+        // the client and server versions quietly drift apart over time.
         class MatchingAlgorithm {
             constructor(store) {
                 this.store = store;
-            }
-
-            calculateDistance(point1, point2) {
-                // Simple distance calculation (in km) - in production, use actual geocoding
-                const [lat1, lon1] = point1;
-                const [lat2, lon2] = point2;
-                const R = 6371; // Earth's radius in km
-                const dLat = this.toRad(lat2 - lat1);
-                const dLon = this.toRad(lon2 - lon1);
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                return R * c;
-            }
-
-            toRad(deg) {
-                return deg * (Math.PI/180);
-            }
-
-            getUserCoordinates(address) {
-                // Mock function - in production, use geocoding service
-                // Generate deterministic pseudo-coordinates based on address string
-                const hash = address.split('').reduce((acc, char) => {
-                    return char.charCodeAt(0) + ((acc << 5) - acc);
-                }, 0);
-                const lat = 18.5 + (hash % 100) / 100;
-                const lon = 73.8 + (hash % 100) / 100;
-                return [lat, lon];
-            }
-
-            timeToMinutes(time) {
-                const [hours, minutes] = time.split(':').map(Number);
-                return hours * 60 + minutes;
-            }
-
-            // ---- Route-overlap based matching (replaces the old proximity-only matchUsers) ----
-
-            // Perpendicular distance from point P to line segment AB (in km)
-            distancePointToSegment(P, A, B) {
-                const [px, py] = P;
-                const [ax, ay] = A;
-                const [bx, by] = B;
-
-                const dx = bx - ax;
-                const dy = by - ay;
-
-                if (dx === 0 && dy === 0) {
-                    // Segment is a point
-                    return this.calculateDistance(P, A);
-                }
-
-                // Project P onto AB
-                const t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
-                const clampedT = Math.max(0, Math.min(1, t));
-
-                const projX = ax + clampedT * dx;
-                const projY = ay + clampedT * dy;
-
-                return this.calculateDistance(P, [projX, projY]);
-            }
-
-            // Check if a passenger can be served by a driver (route overlap & timing)
-            canServePassenger(driver, passenger, tripType) {
-                // Timing compatibility
-                const timeDiff = tripType === 'morning'
-                    ? Math.abs(this.timeToMinutes(driver.officeEntryTime) - this.timeToMinutes(passenger.officeEntryTime))
-                    : Math.abs(this.timeToMinutes(driver.officeExitTime) - this.timeToMinutes(passenger.officeExitTime));
-
-                if (timeDiff > 15) return false; // Max 15 min delay for group
-
-                // Route overlap check
-                const driverHome = this.getUserCoordinates(driver.homeZone);
-                const driverOffice = this.getUserCoordinates(driver.officeAddress);
-                const passengerLocation = this.getUserCoordinates(passenger.homeZone); // pickup (morning) / drop-off (evening)
-
-                // For morning: route is home -> office. For evening: route is office -> home.
-                const routeStart = tripType === 'morning' ? driverHome : driverOffice;
-                const routeEnd = tripType === 'morning' ? driverOffice : driverHome;
-
-                // Allow perpendicular distance up to 2 km from route
-                const maxDistance = 2.0;
-                const distanceToRoute = this.distancePointToSegment(passengerLocation, routeStart, routeEnd);
-                return distanceToRoute <= maxDistance;
-            }
-
-            // Score a group based on total detour (sum of distances from passenger to driver's route)
-            scoreGroup(group, tripType) {
-                const driver = group[0];
-                const driverHome = this.getUserCoordinates(driver.homeZone);
-                const driverOffice = this.getUserCoordinates(driver.officeAddress);
-                const routeStart = tripType === 'morning' ? driverHome : driverOffice;
-                const routeEnd = tripType === 'morning' ? driverOffice : driverHome;
-
-                let totalDetour = 0;
-                for (let i = 1; i < group.length; i++) {
-                    const passengerLoc = this.getUserCoordinates(group[i].homeZone);
-                    totalDetour += this.distancePointToSegment(passengerLoc, routeStart, routeEnd);
-                }
-                return totalDetour;
-            }
-
-            // Form groups by trying each user as a potential driver, picking whichever
-            // candidate driver's route serves the passengers with the least total detour.
-            // group[0] in the returned group is always the chosen driver for that group.
-            matchUsersFlexible(users, tripType) {
-                const groups = [];
-                const remainingUsers = [...users];
-
-                while (remainingUsers.length >= 2) {
-                    let bestGroup = null;
-
-                    for (let i = 0; i < remainingUsers.length; i++) {
-                        const candidateDriver = remainingUsers[i];
-                        const passengers = remainingUsers.filter((_, idx) => idx !== i);
-
-                        // Find passengers that can be served by this driver
-                        const eligiblePassengers = passengers.filter(passenger =>
-                            this.canServePassenger(candidateDriver, passenger, tripType)
-                        );
-
-                        // Must have at least one passenger to form a group
-                        if (eligiblePassengers.length === 0) continue;
-
-                        // Limit group size to 2-6 (including driver)
-                        const groupSize = Math.min(6, eligiblePassengers.length + 1);
-                        const selectedPassengers = eligiblePassengers.slice(0, groupSize - 1);
-                        const group = [candidateDriver, ...selectedPassengers];
-
-                        // Score group by total proximity (lower is better)
-                        const score = this.scoreGroup(group, tripType);
-
-                        if (!bestGroup || score < bestGroup.score) {
-                            bestGroup = { group, score };
-                        }
-                    }
-
-                    if (!bestGroup) {
-                        // No viable driver among the remaining users; stop to avoid an infinite loop.
-                        break;
-                    }
-
-                    groups.push(bestGroup.group);
-
-                    // Remove matched users from remaining
-                    const matchedEmails = new Set(bestGroup.group.map(u => u.email));
-                    for (let i = remainingUsers.length - 1; i >= 0; i--) {
-                        if (matchedEmails.has(remainingUsers[i].email)) {
-                            remainingUsers.splice(i, 1);
-                        }
-                    }
-                }
-
-                // If one user remains, try to attach them to an existing group if their
-                // pickup/drop-off still fits within that group's driver's route.
-                if (remainingUsers.length === 1) {
-                    const loneUser = remainingUsers[0];
-                    for (const group of groups) {
-                        const driver = group[0];
-                        if (this.canServePassenger(driver, loneUser, tripType) && group.length < 6) {
-                            group.push(loneUser);
-                            remainingUsers.length = 0;
-                            break;
-                        }
-                    }
-                }
-
-                return groups;
             }
 
             calculateDropoffTime(pickupTime) {
@@ -808,162 +646,8 @@
                 const dropoffMins = dropoffMinutes % 60;
                 return `${String(dropoffHours).padStart(2, '0')}:${String(dropoffMins).padStart(2, '0')}`;
             }
-
-            async createRide(group, tripType) {
-                // The driver is group[0] — already chosen by matchUsersFlexible based on
-                // whose route actually covers the other members' pickup/drop-off points.
-                // (We intentionally do not re-select a driver by monthly driving-count
-                // fairness here, since that could hand the role to someone whose route
-                // was never validated against the rest of the group.)
-                const driver = group[0];
-                const passengers = group.slice(1);
-
-                const ride = {
-                    id: `ride_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    tripType,
-                    driver: driver.email,
-                    passengers: passengers.map(p => p.email),
-                    group: group.map(u => ({
-                        email: u.email,
-                        name: u.name,
-                        homeZone: u.homeZone,
-                        officeAddress: u.officeAddress
-                    })),
-                    status: 'matched',
-                    pickupTime: tripType === 'morning' ? driver.officeEntryTime : driver.officeExitTime,
-                    dropoffTime: tripType === 'morning' ?
-                        this.calculateDropoffTime(driver.officeEntryTime) :
-                        this.calculateDropoffTime(driver.officeExitTime),
-                    createdAt: new Date().toISOString(),
-                    date: new Date().toISOString().split('T')[0]
-                };
-
-                return await this.store.saveRide(ride);
-            }
-
-            async scheduleRides(tripType) {
-                const users = this.store.getUsers();
-                if (users.length < 2) return [];
-
-                const groups = this.matchUsersFlexible(users, tripType);
-                const rides = [];
-
-                for (const group of groups) {
-                    if (group.length >= 2) {
-                        const ride = await this.createRide(group, tripType);
-                        rides.push(ride);
-
-                        // Update driver log
-                        if (ride.driver) {
-                            const currentMonth = new Date().toISOString().slice(0, 7);
-                            const currentCount = this.store.getDriverCount(ride.driver, currentMonth);
-                            await this.store.saveDriverLog(ride.driver, currentMonth, currentCount + 1);
-                        }
-                    }
-                }
-
-                return rides;
-            }
-
-            // ---- Cancellation handling ----
-
-            // Passenger cancels their seat on a ride.
-            async cancelPassenger(rideId, passengerEmail) {
-                const ride = this.store.getRides().find(r => r.id === rideId);
-                if (!ride || ride.status === 'completed' || ride.status === 'cancelled') return null;
-
-                const updatedPassengers = ride.passengers.filter(p => p !== passengerEmail);
-                const updatedGroup = ride.group.filter(g => g.email !== passengerEmail);
-
-                const updatedRide = await this.store.updateRide(rideId, {
-                    passengers: updatedPassengers,
-                    group: updatedGroup
-                });
-
-                // Notify driver (surfaced in the UI via the ride card's updated group list)
-                console.log(`Passenger ${passengerEmail} cancelled seat on ride ${rideId}. Driver ${ride.driver} notified.`);
-
-                return updatedRide;
-            }
-
-            // Driver cancels a ride — notify passengers and attempt to rematch them
-            // with another driver before the deadline (6 AM morning / 6 PM evening).
-            async cancelDriver(rideId) {
-                const ride = this.store.getRides().find(r => r.id === rideId);
-                if (!ride || ride.status === 'completed' || ride.status === 'cancelled') return null;
-
-                const tripType = ride.tripType;
-                const passengers = ride.passengers; // emails of stranded passengers
-
-                // Mark current ride as cancelled
-                await this.store.updateRide(rideId, { status: 'cancelled', cancellationReason: 'Driver cancelled' });
-                console.log(`Driver cancelled ride ${rideId}. Notifying passengers: ${passengers.join(', ')}`);
-
-                const deadline = tripType === 'morning' ? '06:00' : '18:00';
-                const currentTime = new Date().toTimeString().slice(0, 5);
-                const timeToDeadline = this.timeToMinutes(deadline) - this.timeToMinutes(currentTime);
-
-                const allUsers = this.store.getUsers();
-                const passengersToRematch = allUsers.filter(u => passengers.includes(u.email));
-
-                if (timeToDeadline > 0 && passengersToRematch.length >= 2) {
-                    const newGroups = this.matchUsersFlexible(passengersToRematch, tripType);
-                    const rematchedEmails = new Set();
-
-                    for (const group of newGroups) {
-                        if (group.length >= 2) {
-                            const newRide = await this.createRide(group, tripType);
-                            await this.store.updateRide(newRide.id, { status: 'matched' });
-                            group.forEach(u => rematchedEmails.add(u.email));
-
-                            const currentMonth = new Date().toISOString().slice(0, 7);
-                            const currentCount = this.store.getDriverCount(newRide.driver, currentMonth);
-                            await this.store.saveDriverLog(newRide.driver, currentMonth, currentCount + 1);
-                        }
-                    }
-                    console.log(`Rematching successful for ${rematchedEmails.size} passengers.`);
-
-                    // Anyone left over gets a "no match found" placeholder ride so it shows up for them.
-                    for (const u of passengersToRematch.filter(u => !rematchedEmails.has(u.email))) {
-                        await this.createNoMatchRide(u, tripType);
-                    }
-                } else {
-                    if (timeToDeadline <= 0) {
-                        console.log('Deadline passed – no rematching attempted.');
-                    } else {
-                        console.log('Fewer than 2 stranded passengers – no rematch possible.');
-                    }
-                    for (const u of passengersToRematch) {
-                        await this.createNoMatchRide(u, tripType);
-                    }
-                }
-
-                return this.store.getRides().find(r => r.id === rideId);
-            }
-
-            // Placeholder ride record shown to a passenger when no replacement driver
-            // could be found before the deadline ("No matching found – commute yourself").
-            async createNoMatchRide(user, tripType) {
-                const ride = {
-                    id: `ride_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    tripType,
-                    driver: null,
-                    passengers: [user.email],
-                    group: [{
-                        email: user.email,
-                        name: user.name,
-                        homeZone: user.homeZone,
-                        officeAddress: user.officeAddress
-                    }],
-                    status: 'no match',
-                    pickupTime: null,
-                    dropoffTime: null,
-                    createdAt: new Date().toISOString(),
-                    date: new Date().toISOString().split('T')[0]
-                };
-                return await this.store.saveRide(ride);
-            }
         }
+
 
         // ==================== UI RENDERER ====================
         class UIRenderer {
@@ -1490,7 +1174,6 @@
                 this.handleOnboarding = this.handleOnboarding.bind(this);
                 this.logout = this.logout.bind(this);
                 this.switchTab = this.switchTab.bind(this);
-                this.scheduleRidesAutomatically = this.scheduleRidesAutomatically.bind(this);
                 this.cancelAsDriver = this.cancelAsDriver.bind(this);
                 this.cancelAsPassenger = this.cancelAsPassenger.bind(this);
                 this.setPreviewRole = this.setPreviewRole.bind(this);
@@ -1514,7 +1197,6 @@
                             this.ui.currentUser = user;
                             this.ui.currentView = 'dashboard';
                             this.ui.render();
-                            this.initializeAutoScheduling();
                             return;
                         }
                     } catch (err) {
@@ -1577,7 +1259,6 @@
                     this.ui.currentUser = user;
                     this.ui.currentView = 'dashboard';
                     this.ui.render();
-                    this.initializeAutoScheduling();
                 } catch (err) {
                     console.error('Login failed:', err);
                     errorDiv.textContent = 'Login failed: ' + err.message;
@@ -1658,7 +1339,6 @@
                     this.ui.currentUser = this.store.getUserByEmail(user.email) || user;
                     this.ui.currentView = 'dashboard';
                     this.ui.render();
-                    this.initializeAutoScheduling();
                 } catch (err) {
                     console.error('Registration failed:', err);
                     errorDiv.textContent = `Registration failed: ${err.message}`;
@@ -1678,15 +1358,52 @@
                 this.ui.switchTab(tabName);
             }
 
+            // Calls the "matching-engine" Edge Function — cancellations now run
+            // server-side (same engine pg_cron uses for scheduled matching), so
+            // there's only ever one copy of the matching logic, not two that could
+            // drift out of sync.
+            async callMatchingEngine(payload) {
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/matching-engine`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentAccessToken || SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (!res.ok || !result.success) {
+                    throw new Error(result.error || `Matching engine error ${res.status}`);
+                }
+                return result.data;
+            }
+
             // Driver cancels a ride they were assigned to drive.
             async cancelAsDriver(rideId) {
-                await this.matcher.cancelDriver(rideId);
+                try {
+                    await this.callMatchingEngine({ action: 'cancelDriver', rideId });
+                } catch (err) {
+                    console.error('Cancel (driver) failed:', err);
+                    alert('Could not cancel this ride: ' + err.message);
+                }
+                await this.store.init();
                 this.ui.switchTab('rides');
             }
 
             // Passenger cancels their seat on a ride.
             async cancelAsPassenger(rideId) {
-                await this.matcher.cancelPassenger(rideId, this.ui.currentUser.email);
+                try {
+                    await this.callMatchingEngine({
+                        action: 'cancelPassenger',
+                        rideId,
+                        passengerEmail: this.ui.currentUser.email
+                    });
+                } catch (err) {
+                    console.error('Cancel (passenger) failed:', err);
+                    alert('Could not cancel your seat: ' + err.message);
+                }
+                await this.store.init();
                 this.ui.switchTab('rides');
             }
 
@@ -1697,59 +1414,11 @@
                 if (el) el.innerHTML = this.ui.renderRidePreview();
             }
 
-            initializeAutoScheduling() {
-                // Check every minute if we need to run scheduling
-                setInterval(() => {
-                    this.scheduleRidesAutomatically();
-                }, 60000); // Check every minute
-
-                // Run initial check
-                this.scheduleRidesAutomatically();
-            }
-
-            async scheduleRidesAutomatically() {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes();
-
-                // Morning ride scheduling (7PM to 8PM previous day)
-                if (hours === 19 && minutes >= 0 && minutes <= 59) {
-                    const todayStr = now.toISOString().split('T')[0];
-                    const schedules = this.store.getSchedules();
-                    const alreadyScheduled = schedules.some(s =>
-                        s.date === todayStr && s.type === 'morning'
-                    );
-
-                    if (!alreadyScheduled) {
-                        const rides = await this.matcher.scheduleRides('morning');
-                        await this.store.saveSchedule({
-                            date: todayStr,
-                            type: 'morning',
-                            ridesCount: rides.length,
-                            scheduledAt: now.toISOString()
-                        });
-                    }
-                }
-
-                // Evening ride scheduling (2PM to 3PM same day)
-                if (hours === 14 && minutes >= 0 && minutes <= 59) {
-                    const todayStr = now.toISOString().split('T')[0];
-                    const schedules = this.store.getSchedules();
-                    const alreadyScheduled = schedules.some(s =>
-                        s.date === todayStr && s.type === 'evening'
-                    );
-
-                    if (!alreadyScheduled) {
-                        const rides = await this.matcher.scheduleRides('evening');
-                        await this.store.saveSchedule({
-                            date: todayStr,
-                            type: 'evening',
-                            ridesCount: rides.length,
-                            scheduledAt: now.toISOString()
-                        });
-                    }
-                }
-            }
+            // NOTE: client-side auto-scheduling has been removed. Matching now runs
+            // via pg_cron calling the "matching-engine" Edge Function directly on
+            // Supabase's servers (19:00 / 14:00 IST) — see the migration plan notes.
+            // Running it here too would create duplicate rides any time someone had
+            // the app open at those times.
         }
 
         // ==================== INITIALIZE APP ====================
