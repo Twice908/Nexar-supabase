@@ -263,7 +263,7 @@
                 updatedAt: row.updated_at
             };
         }
-        function rideToDb(r) {
+                function rideToDb(r) {
             return {
                 id: r.id,
                 trip_type: r.tripType,
@@ -273,6 +273,8 @@
                 status: r.status,
                 pickup_time: r.pickupTime,
                 dropoff_time: r.dropoffTime,
+                pickup_order: r.pickupOrder,
+                dropoff_order: r.dropoffOrder,
                 cancellation_reason: r.cancellationReason,
                 date: r.date
             };
@@ -287,6 +289,8 @@
                 status: row.status,
                 pickupTime: row.pickup_time,
                 dropoffTime: row.dropoff_time,
+                pickupOrder: row.pickup_order || [],
+                dropoffOrder: row.dropoff_order || [],
                 cancellationReason: row.cancellation_reason,
                 date: row.date,
                 createdAt: row.created_at
@@ -585,12 +589,21 @@
                 `;
             }
 
-            renderRidesTab() {
-                const rides = this.store.getRides();
-                const userRides = rides.filter(r =>
+                        renderRidesTab() {
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+                const allRides = this.store.getRides().filter(r =>
                     r.driver === this.currentUser.email ||
                     r.passengers.includes(this.currentUser.email)
                 );
+
+                const upcoming = allRides
+                    .filter(r => r.date >= todayStr)
+                    .sort((a, b) => (a.date + a.tripType).localeCompare(b.date + b.tripType));
+                const past = allRides
+                    .filter(r => r.date < todayStr)
+                    .sort((a, b) => (b.date + b.tripType).localeCompare(a.date + a.tripType));
 
                 return `
                     <div class="tab-content active" id="ridesContent">
@@ -599,10 +612,17 @@
                             <button class="btn btn-outline" style="width:auto; padding:8px 14px; font-size:14px;" onclick="app.refresh(this)">↻ Refresh</button>
                         </div>
                         <div id="cancelError" class="error"></div>
-                        ${userRides.length === 0 ?
-                            '<p>No rides scheduled yet.</p>' :
-                            userRides.map(ride => this.renderRideCard(ride)).join('')
+
+                        <h3 style="margin: 10px 0;">Upcoming</h3>
+                        ${upcoming.length === 0 ?
+                            '<p style="color:#6b7280;">No upcoming rides scheduled yet.</p>' :
+                            upcoming.map(ride => this.renderRideCard(ride)).join('')
                         }
+
+                        ${past.length > 0 ? `
+                            <h3 style="margin: 25px 0 10px;">Past Rides</h3>
+                            ${past.map(ride => this.renderRideCard(ride, true)).join('')}
+                        ` : ''}
                     </div>
                 `;
             }
@@ -633,7 +653,7 @@
                 return '';
             }
 
-            renderRideCard(ride) {
+                        renderRideCard(ride, past = false) {
                 const isDriver = ride.driver === this.currentUser.email;
 
                 if (ride.status === 'no match') {
@@ -692,8 +712,7 @@
                         ${ride.dropoffTime ? `<p><strong>Dropoff:</strong> ${ride.dropoffTime}</p>` : ''}
                         <p><strong>Group Members:</strong> ${ride.group.map(g => g.name).join(', ')}</p>
 
-                        <!-- Real Leaflet map is mounted into this container after render -->
-                        <div class="ride-map" id="ride-map-${ride.id}"></div>
+                        ${past ? '' : `<div class="ride-map" id="ride-map-${ride.id}"></div>`}
 
                         ${driverInfoHTML}
 
@@ -706,9 +725,10 @@
                                 }).join('')}
                             </div>
                         ` : ''}
-
                         ${this.getRideActionButtonsHTML(ride, isDriver)}
                         ${this.getCancelButtonHTML(ride, isDriver)}
+                        ${past ? '' : this.getRideActionButtonsHTML(ride, isDriver)}
+                        ${past ? '' : this.getCancelButtonHTML(ride, isDriver)}
                     </div>
                 `;
             }
@@ -775,8 +795,12 @@
                             radius: 9, color: '#fff', weight: 3, fillColor: '#10b981', fillOpacity: 1
                         }).addTo(map).bindPopup(`<b>${driver.name}</b><br>Nexar (Driver)`);
 
-                        // Passenger markers (orange)
-                        (ride.passengers || []).forEach((email) => {
+                        // Passenger markers (orange) — ordered by pickup sequence
+                        const orderedPassengers = (ride.pickupOrder && ride.pickupOrder.length > 0)
+                            ? ride.pickupOrder
+                            : (ride.passengers || []);
+
+                        orderedPassengers.forEach((email, idx) => {
                             const p = this.store.getUserByEmail(email);
                             if (!p) return;
                             const pLoc = [p.homeLat, p.homeLng];
@@ -784,7 +808,7 @@
                             points.push(pLoc);
                             L.circleMarker(pLoc, {
                                 radius: 7, color: '#fff', weight: 2, fillColor: '#f59e0b', fillOpacity: 1
-                            }).addTo(map).bindPopup(`<b>${p.name}</b><br>Pickup`);
+                            }).addTo(map).bindPopup(`<b>${p.name}</b><br>Pickup #${idx + 1}`);
                         });
 
                         // Destination marker (red)
