@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexar Carpool</title>
+
+    <!-- Leaflet CSS + JS for real maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
             --primary: #2563eb;
@@ -128,27 +133,16 @@
         .status-completed { background: #e5e7eb; color: #374151; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
         .status-no-match { background: #ffedd5; color: #9a3412; }
-        .map-placeholder {
-            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+
+        /* Real map container — needs explicit height for Leaflet to render */
+        .ride-map {
+            height: 220px;
             border-radius: 15px;
-            padding: 20px;
             margin: 15px 0;
-            position: relative;
-            min-height: 200px;
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            overflow: hidden;
         }
-        .map-point {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            border: 3px solid white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        .map-point.driver { background: var(--success); }
-        .map-point.passenger { background: var(--warning); }
-        .map-point.destination { background: var(--danger); }
+
         .notification {
             background: #fef3c7;
             border-left: 4px solid var(--warning);
@@ -208,7 +202,6 @@
             return data;
         }
 
-        // Calls the geocode edge function. Returns { lat, lng, formatted } or throws.
         async function geocodeAddress(address) {
             const res = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, {
                 method: 'POST',
@@ -470,6 +463,7 @@
                 this.currentUser = null;
                 this.currentView = 'login';
                 this.activeTab = 'home';
+                this.rideMaps = new Map(); // rideId -> Leaflet map instance
             }
 
             render() {
@@ -591,35 +585,6 @@
                 `;
             }
 
-            buildRoutePoints(driverName, passengerNames, destinationLabel) {
-                const stops = [
-                    { type: 'driver', label: driverName },
-                    ...passengerNames.map(name => ({ type: 'passenger', label: name })),
-                    { type: 'destination', label: destinationLabel }
-                ];
-                const n = stops.length;
-                return stops.map((s, i) => {
-                    const t = n === 1 ? 0 : i / (n - 1);
-                    return { ...s, top: 80 - t * 65, left: 10 + t * 75 };
-                });
-            }
-
-            renderMapPreview(points) {
-                const dotColor = { driver: 'var(--success)', passenger: 'var(--warning)', destination: 'var(--danger)' };
-                const pins = points.map(p =>
-                    `<div class="map-point ${p.type}" style="top:${p.top}%; left:${p.left}%;" title="${p.label}"></div>`
-                ).join('');
-                const legend = points.map(p =>
-                    `<span style="display:inline-flex; align-items:center; gap:5px; margin-right:14px; font-size:0.8em; color:#374151;">
-                        <span style="width:10px; height:10px; border-radius:50%; display:inline-block; background:${dotColor[p.type]};"></span>${p.label}
-                    </span>`
-                ).join('');
-                return `
-                    <div class="map-placeholder" style="min-height:180px;">${pins}</div>
-                    <div style="margin-top:8px; margin-bottom:5px;">${legend}</div>
-                `;
-            }
-
             renderRidesTab() {
                 const rides = this.store.getRides();
                 const userRides = rides.filter(r =>
@@ -727,11 +692,8 @@
                         ${ride.dropoffTime ? `<p><strong>Dropoff:</strong> ${ride.dropoffTime}</p>` : ''}
                         <p><strong>Group Members:</strong> ${ride.group.map(g => g.name).join(', ')}</p>
 
-                        ${this.renderMapPreview(this.buildRoutePoints(
-                            (this.store.getUserByEmail(ride.driver) || {}).name || 'No driver assigned',
-                            ride.passengers.map(p => (this.store.getUserByEmail(p) || {}).name || p),
-                            ride.tripType === 'morning' ? 'Office' : 'Home'
-                        ))}
+                        <!-- Real Leaflet map is mounted into this container after render -->
+                        <div class="ride-map" id="ride-map-${ride.id}"></div>
 
                         ${driverInfoHTML}
 
@@ -749,6 +711,98 @@
                         ${this.getCancelButtonHTML(ride, isDriver)}
                     </div>
                 `;
+            }
+
+            // --- Leaflet map lifecycle ---
+
+            destroyRideMaps() {
+                this.rideMaps.forEach((map) => {
+                    try { map.remove(); } catch (e) { /* ignore */ }
+                });
+                this.rideMaps.clear();
+            }
+
+            // Called after the Rides tab DOM is live.
+            mountRideMaps() {
+                if (typeof L === 'undefined') {
+                    console.warn('Leaflet not loaded — skipping map render');
+                    return;
+                }
+
+                const rides = this.store.getRides().filter(r =>
+                    r.driver === this.currentUser.email ||
+                    r.passengers.includes(this.currentUser.email)
+                );
+
+                rides.forEach((ride) => {
+                    // No map for rides that never had a driver / location.
+                    if (ride.status === 'no match' || ride.status === 'cancelled') return;
+
+                    const el = document.getElementById(`ride-map-${ride.id}`);
+                    if (!el) return;
+
+                    const driver = this.store.getUserByEmail(ride.driver);
+                    if (!driver) return;
+
+                    const driverHome = [driver.homeLat, driver.homeLng];
+                    const driverOffice = [driver.officeLat, driver.officeLng];
+                    const isMorning = ride.tripType === 'morning';
+                    const start = isMorning ? driverHome : driverOffice;
+                    const end = isMorning ? driverOffice : driverHome;
+
+                    const valid = (p) => Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number';
+                    if (!valid(start) || !valid(end)) {
+                        el.innerHTML = '<p style="padding:20px; text-align:center; color:#6b7280; font-size:0.85em;">Map unavailable — missing coordinates</p>';
+                        return;
+                    }
+
+                    try {
+                        const map = L.map(el, {
+                            zoomControl: false,
+                            scrollWheelZoom: false,
+                            attributionControl: true
+                        });
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '© OpenStreetMap'
+                        }).addTo(map);
+
+                        const points = [start];
+
+                        // Driver marker (green)
+                        L.circleMarker(start, {
+                            radius: 9, color: '#fff', weight: 3, fillColor: '#10b981', fillOpacity: 1
+                        }).addTo(map).bindPopup(`<b>${driver.name}</b><br>Nexar (Driver)`);
+
+                        // Passenger markers (orange)
+                        (ride.passengers || []).forEach((email) => {
+                            const p = this.store.getUserByEmail(email);
+                            if (!p) return;
+                            const pLoc = [p.homeLat, p.homeLng];
+                            if (!valid(pLoc)) return;
+                            points.push(pLoc);
+                            L.circleMarker(pLoc, {
+                                radius: 7, color: '#fff', weight: 2, fillColor: '#f59e0b', fillOpacity: 1
+                            }).addTo(map).bindPopup(`<b>${p.name}</b><br>Pickup`);
+                        });
+
+                        // Destination marker (red)
+                        points.push(end);
+                        L.circleMarker(end, {
+                            radius: 9, color: '#fff', weight: 3, fillColor: '#ef4444', fillOpacity: 1
+                        }).addTo(map).bindPopup(`<b>${isMorning ? 'Office' : 'Home'}</b>`);
+
+                        // Blue route line through the points
+                        L.polyline(points, { color: '#2563eb', weight: 3, opacity: 0.7 }).addTo(map);
+
+                        map.fitBounds(L.latLngBounds(points).pad(0.2));
+
+                        this.rideMaps.set(ride.id, map);
+                    } catch (err) {
+                        console.error('Map init failed for ride', ride.id, err);
+                    }
+                });
             }
 
             renderSettingsTab() {
@@ -795,10 +849,19 @@
                     tab.classList.toggle('active', tab.dataset.tab === tabName);
                 });
 
+                // Always clean up old Leaflet maps BEFORE replacing the DOM.
+                this.destroyRideMaps();
+
                 const content = document.getElementById('tabContent');
                 switch (tabName) {
-                    case 'home': content.innerHTML = this.renderHomeTab(); break;
-                    case 'rides': content.innerHTML = this.renderRidesTab(); break;
+                    case 'home':
+                        content.innerHTML = this.renderHomeTab();
+                        break;
+                    case 'rides':
+                        content.innerHTML = this.renderRidesTab();
+                        // DOM is now live — initialize Leaflet maps.
+                        this.mountRideMaps();
+                        break;
                     case 'settings':
                         content.innerHTML = this.renderSettingsTab();
                         this.setupSettingsForm();
@@ -816,7 +879,7 @@
                 }
             }
 
-                        async handleSettingsUpdate() {
+            async handleSettingsUpdate() {
                 const updatedData = {
                     ...this.currentUser,
                     name: document.getElementById('editName').value,
@@ -870,8 +933,6 @@
                     const saved = await this.store.saveUser(updatedData);
                     this.currentUser = saved;
 
-                    // Switch back to the settings tab so the warning is visible
-                    // (this.render() would land on Home and hide the message).
                     this.switchTab('settings');
 
                     if (geocodeWarning) {
@@ -901,7 +962,7 @@
                 this.matcher = new MatchingAlgorithm(this.store);
                 this.ui = new UIRenderer(this.store, this.onboarding, this.matcher);
 
-                this.busy = false;           // set true during actions so polling doesn't stomp UI
+                this.busy = false;
                 this._pollingHandle = null;
                 this._lastRidesHash = '';
 
@@ -922,7 +983,6 @@
                 this.start();
             }
 
-            // ---- token refresh ----
             async tryRefreshToken() {
                 const session = this.store.getSession();
                 if (!session.refreshToken) return false;
@@ -956,7 +1016,6 @@
                 }
             }
 
-            // ---- polling (Fix #3 — near-realtime without a websocket) ----
             startPolling() {
                 if (this._pollingHandle) return;
                 this._pollingHandle = setInterval(() => this.pollTick(), 30000);
@@ -983,7 +1042,6 @@
                         }
                     }
                 } catch (err) {
-                    // Silent polling failure. If 401, try refresh once — if that fails, log out.
                     if (String(err.message).includes('401')) {
                         const refreshed = await this.tryRefreshToken();
                         if (!refreshed) {
@@ -1134,31 +1192,22 @@
                 infoDiv.classList.add('show');
 
                 try {
-                    // 1. Geocode home + office BEFORE signing up so a geocode failure
-                    //    doesn't leave an orphaned auth account.
                     const homeC = await geocodeAddress(userData.homeZone).catch(() => null);
                     if (homeC) {
                         userData.homeLat = homeC.lat;
                         userData.homeLng = homeC.lng;
-                    } else {
-                        console.warn('Home zone could not be geocoded — will fall back to hash coords.');
                     }
 
-                    // Small delay for Nominatim's ~1 req/sec rate limit (skipped if
-                    // using OpenCage since we don't know which; better safe).
                     await new Promise(r => setTimeout(r, 1000));
 
                     const officeC = await geocodeAddress(userData.officeAddress).catch(() => null);
                     if (officeC) {
                         userData.officeLat = officeC.lat;
                         userData.officeLng = officeC.lng;
-                    } else {
-                        console.warn('Office address could not be geocoded — will fall back to hash coords.');
                     }
 
                     infoDiv.textContent = 'Creating account…';
 
-                    // 2. Create the auth account.
                     const authRes = await supabaseAuthFetch('signup', {
                         method: 'POST',
                         body: JSON.stringify({ email: userData.email, password })
@@ -1175,7 +1224,6 @@
                     }
                     setAuthToken(authRes.access_token);
 
-                    // 3. Save the profile with lat/lng attached.
                     const user = await this.onboarding.saveUser({ ...userData, authId: authRes.user.id });
 
                     const session = {
@@ -1204,6 +1252,7 @@
             }
 
             logout() {
+                this.ui.destroyRideMaps();
                 this.store.clearSession();
                 setAuthToken(null);
                 this.ui.currentUser = null;
@@ -1336,8 +1385,7 @@
         window.app = app;
 
         console.log('🚗 Nexar App initialized.');
-        console.log('📍 Real geocoding enabled (OpenCage or Nominatim).');
-        console.log('🔄 Auto token refresh + 30s polling for live updates.');
+        console.log('🗺️ Real Leaflet maps enabled.');
     </script>
 </body>
 </html>
