@@ -163,8 +163,8 @@
 
     <script>
         // ==================== SUPABASE CONFIG ====================
-        const SUPABASE_URL = 'https://dhozznjdpzwmjfcwyhte.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM';
+        const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
         let currentAccessToken = null;
         function setAuthToken(token) { currentAccessToken = token; }
@@ -736,6 +736,19 @@
                 const statusClass = `status-${ride.status.toLowerCase().replace(' ', '-')}`;
 
                 const driverUser = this.store.getUserByEmail(ride.driver);
+                const driverGroupEntry = (ride.group || []).find(g => g.email === ride.driver);
+                const meGroupEntry = (ride.group || []).find(g => g.email === this.currentUser.email);
+
+                // Passenger's view: show their own walk info below the driver card.
+                const myWalkHTML = (!isDriver && meGroupEntry && meGroupEntry.walkMin > 0) ? `
+                    <div style="margin-top:12px; padding:12px; background:#fffbeb; border-radius:10px; border-left:3px solid #f59e0b;">
+                        <p style="font-size:0.85em; color:#92400e;">
+                            🚶 <strong>Your walk from drop-off:</strong> ~${meGroupEntry.walkMin} min
+                            (${Math.round(meGroupEntry.walkKm * 1000)} m) to your office.
+                        </p>
+                    </div>
+                ` : '';
+
                 const driverInfoHTML = (!isDriver && driverUser) ? `
                     <div style="margin-top:15px; padding:12px; background:#f9fafb; border-radius:10px;">
                         <p style="font-size:0.85em; color:#6b7280; margin-bottom:6px;"><strong>Your Nexar</strong></p>
@@ -743,6 +756,37 @@
                         <p>${driverUser.carCompany} ${driverUser.carModel} — <strong>${driverUser.carNumber}</strong></p>
                     </div>
                 ` : '';
+
+                // Driver's view: for each passenger, show the walk distance they'll
+                // have between the shared drop-off (driver's office) and their own.
+                const passengerListHTML = isDriver ? `
+                    <div style="margin-top: 15px;">
+                        <p><strong>Passengers:</strong></p>
+                        ${ride.passengers.map(email => {
+                            const g = (ride.group || []).find(x => x.email === email);
+                            const passenger = this.store.getUserByEmail(email);
+                            if (!passenger) return '';
+                            const walk = (g && typeof g.walkMin === 'number') ? g.walkMin : null;
+                            const walkKm = (g && typeof g.walkKm === 'number') ? g.walkKm : null;
+                            const walkLine = walk !== null
+                                ? `<p style="font-size:0.8em; color:#6b7280; margin-left:18px;">
+                                     🚶 ${walk} min walk (${Math.round((walkKm || 0) * 1000)} m) to their office
+                                   </p>`
+                                : '';
+                            return `<p>• ${passenger.name} (${passenger.homeZone})</p>${walkLine}`;
+                        }).join('')}
+                    </div>
+                ` : '';
+
+                const startedLine = ride.startedAt
+                    ? `<p style="font-size:0.85em; color:#6b7280;">Started: ${new Date(ride.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>`
+                    : '';
+                const completedLine = ride.completedAt
+                    ? `<p style="font-size:0.85em; color:#6b7280;">Completed: ${new Date(ride.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>`
+                    : '';
+                const cancelledLine = ride.cancelledAt
+                    ? `<p style="font-size:0.85em; color:#6b7280;">Cancelled: ${new Date(ride.cancelledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>`
+                    : '';
 
                 return `
                     <div class="ride-card">
@@ -756,33 +800,24 @@
                         <p><strong>Role:</strong> ${role}</p>
                         ${ride.pickupTime ? `<p><strong>Pickup:</strong> ${ride.pickupTime}</p>` : ''}
                         ${ride.dropoffTime ? `<p><strong>Dropoff:</strong> ${ride.dropoffTime}</p>` : ''}
-                                                ${ride.startedAt ? `<p style="font-size:0.85em; color:#6b7280;">Started: ${new Date(ride.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-                        ${ride.completedAt ? `<p style="font-size:0.85em; color:#6b7280;">Completed: ${new Date(ride.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-                        ${ride.cancelledAt ? `<p style="font-size:0.85em; color:#6b7280;">Cancelled: ${new Date(ride.cancelledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+                        ${startedLine}
+                        ${completedLine}
+                        ${cancelledLine}
                         <p><strong>Group Members:</strong> ${ride.group.map(g => g.name).join(', ')}</p>
 
                         ${past ? '' : `<div class="ride-map" id="ride-map-${ride.id}"></div>`}
 
                         ${driverInfoHTML}
+                        ${myWalkHTML}
+                        ${passengerListHTML}
 
-                        ${isDriver ? `
-                            <div style="margin-top: 15px;">
-                                <p><strong>Passengers:</strong></p>
-                                ${ride.passengers.map(p => {
-                                    const passenger = this.store.getUserByEmail(p);
-                                    return passenger ? `<p>• ${passenger.name} (${passenger.homeZone})</p>` : '';
-                                }).join('')}
-                            </div>
-                        ` : ''}
-                        ${this.getRideActionButtonsHTML(ride, isDriver)}
-                        ${this.getCancelButtonHTML(ride, isDriver)}
                         ${past ? '' : this.getRideActionButtonsHTML(ride, isDriver)}
                         ${past ? '' : this.getCancelButtonHTML(ride, isDriver)}
                     </div>
                 `;
             }
 
-                        renderNotificationPanel() {
+            renderNotificationPanel() {
                 const list = this.store.getNotifications() || [];
                 if (list.length === 0) {
                     return `<p style="color:#6b7280; font-size:0.9em;">No notifications yet.</p>`;
