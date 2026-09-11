@@ -47,6 +47,7 @@
         .logo h1 {
             font-size: 2.5em;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 5px;
@@ -279,7 +280,7 @@
                 date: r.date
             };
         }
-        function rideFromDb(row) {
+               function rideFromDb(row) {
             return {
                 id: row.id,
                 tripType: row.trip_type,
@@ -292,6 +293,9 @@
                 pickupOrder: row.pickup_order || [],
                 dropoffOrder: row.dropoff_order || [],
                 cancellationReason: row.cancellation_reason,
+                startedAt: row.started_at,
+                completedAt: row.completed_at,
+                cancelledAt: row.cancelled_at,
                 date: row.date,
                 createdAt: row.created_at
             };
@@ -300,7 +304,40 @@
         // ==================== DATA MANAGEMENT ====================
         class DataStore {
             constructor() {
-                this.cache = { users: [], rides: [], schedules: [], driverLog: {} };
+                                this.cache = { users: [], rides: [], schedules: [], driverLog: {}, notifications: [] };
+            }
+
+                        getNotifications() { return this.cache.notifications || []; }
+
+            async loadNotifications(email) {
+                const rows = await supabaseFetch(
+                    `notifications?user_email=eq.${encodeURIComponent(email)}&order=created_at.desc&limit=50`
+                );
+                this.cache.notifications = rows.map(r => ({
+                    id: r.id, userEmail: r.user_email, type: r.type,
+                    title: r.title, body: r.body, rideId: r.ride_id,
+                    read: r.read, createdAt: r.created_at
+                }));
+                return this.cache.notifications;
+            }
+
+            async markNotificationRead(id) {
+                await supabaseFetch(`notifications?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({ read: true })
+                });
+                const n = this.cache.notifications.find(x => x.id === id);
+                if (n) n.read = true;
+            }
+
+            async markAllNotificationsRead(email) {
+                await supabaseFetch(`notifications?user_email=eq.${encodeURIComponent(email)}&read=eq.false`, {
+                    method: 'PATCH',
+                    headers: { 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({ read: true })
+                });
+                (this.cache.notifications || []).forEach(n => n.read = true);
             }
 
             async init() {
@@ -553,8 +590,17 @@
                 });
             }
 
-            renderDashboard(app) {
+                        renderDashboard(app) {
+                const unread = (this.store.getNotifications() || []).filter(n => !n.read).length;
                 app.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h2 style="font-size:1.1em; color:#374151;">Nexar</h2>
+                        <button class="btn" style="width:auto; padding:6px 12px; font-size:14px; background:var(--light); position:relative;" onclick="app.toggleNotifications()">
+                            🔔
+                            ${unread > 0 ? `<span style="position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:10px; padding:1px 6px; font-size:11px; font-weight:700;">${unread}</span>` : ''}
+                        </button>
+                    </div>
+                    <div id="notifPanel" style="display:none; background:#f9fafb; border-radius:12px; padding:15px; margin-bottom:20px;"></div>
                     <div class="tabs">
                         <div class="tab active" data-tab="home" onclick="app.switchTab('home')">Home</div>
                         <div class="tab" data-tab="rides" onclick="app.switchTab('rides')">Rides</div>
@@ -710,6 +756,9 @@
                         <p><strong>Role:</strong> ${role}</p>
                         ${ride.pickupTime ? `<p><strong>Pickup:</strong> ${ride.pickupTime}</p>` : ''}
                         ${ride.dropoffTime ? `<p><strong>Dropoff:</strong> ${ride.dropoffTime}</p>` : ''}
+                                                ${ride.startedAt ? `<p style="font-size:0.85em; color:#6b7280;">Started: ${new Date(ride.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+                        ${ride.completedAt ? `<p style="font-size:0.85em; color:#6b7280;">Completed: ${new Date(ride.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+                        ${ride.cancelledAt ? `<p style="font-size:0.85em; color:#6b7280;">Cancelled: ${new Date(ride.cancelledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
                         <p><strong>Group Members:</strong> ${ride.group.map(g => g.name).join(', ')}</p>
 
                         ${past ? '' : `<div class="ride-map" id="ride-map-${ride.id}"></div>`}
@@ -731,6 +780,36 @@
                         ${past ? '' : this.getCancelButtonHTML(ride, isDriver)}
                     </div>
                 `;
+            }
+
+                        renderNotificationPanel() {
+                const list = this.store.getNotifications() || [];
+                if (list.length === 0) {
+                    return `<p style="color:#6b7280; font-size:0.9em;">No notifications yet.</p>`;
+                }
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <strong>Notifications</strong>
+                        <button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px;" onclick="app.markAllNotificationsRead()">Mark all read</button>
+                    </div>
+                    ${list.map(n => `
+                        <div style="padding:10px; border-radius:8px; margin-bottom:8px; background:${n.read ? 'white' : '#eff6ff'}; border-left:3px solid ${n.read ? '#e5e7eb' : 'var(--primary)'}; cursor:pointer;" onclick="app.openNotification('${n.id}', '${n.rideId || ''}')">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                <strong style="font-size:0.9em;">${n.title}</strong>
+                                <span style="font-size:0.75em; color:#6b7280;">${this.formatTimeAgo(n.createdAt)}</span>
+                            </div>
+                            ${n.body ? `<p style="font-size:0.85em; color:#4b5563;">${n.body}</p>` : ''}
+                        </div>
+                    `).join('')}
+                `;
+            }
+
+            formatTimeAgo(iso) {
+                const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                return `${Math.floor(diff / 86400)}d ago`;
             }
 
             // --- Leaflet map lifecycle ---
@@ -1002,6 +1081,10 @@
                 this.startRide = this.startRide.bind(this);
                 this.completeRide = this.completeRide.bind(this);
 
+                this.toggleNotifications = this.toggleNotifications.bind(this);
+                this.markAllNotificationsRead = this.markAllNotificationsRead.bind(this);
+                this.openNotification = this.openNotification.bind(this);
+
                 document.getElementById('app').innerHTML =
                     '<p style="text-align:center; color:#6b7280;">Loading…</p>';
                 this.start();
@@ -1052,6 +1135,13 @@
 
                 try {
                     await this.store.init();
+                    await this.store.loadNotifications(this.ui.currentUser.email);
+                    this.refreshBellBadge();
+                    // If panel is open, re-render it with fresh data
+                    const panel = document.getElementById('notifPanel');
+                    if (panel && panel.style.display === 'block') {
+                        panel.innerHTML = this.ui.renderNotificationPanel();
+                    }
                     const user = this.store.getUserByEmail(this.ui.currentUser.email);
                     if (user) this.ui.currentUser = user;
 
@@ -1086,6 +1176,7 @@
                     let ok = false;
                     try {
                         await this.store.init();
+                        await this.store.loadNotifications(user.email);
                         ok = true;
                     } catch (err) {
                         console.warn('Initial init failed, trying refresh:', err.message);
@@ -1139,6 +1230,7 @@
                     setAuthToken(authRes.access_token);
 
                     await this.store.init();
+                    await this.store.loadNotifications(email);
                     const user = this.store.getUserByEmail(email);
 
                     const session = {
@@ -1261,6 +1353,7 @@
                     this.store.saveSession(session);
 
                     await this.store.init();
+                    await this.store.loadNotifications(user.email);
                     this.ui.currentUser = this.store.getUserByEmail(user.email) || user;
                     this.ui.currentView = 'dashboard';
                     this.ui.render();
@@ -1324,6 +1417,7 @@
             }
 
             async cancelAsDriver(rideId, btn) {
+                if (!confirm('Cancel this ride? Your passengers will be notified and we\'ll try to re-match them with another Nexar.')) return;
                 this.busy = true;
                 this.setButtonLoading(btn, 'Cancelling…');
                 try {
@@ -1340,6 +1434,7 @@
             }
 
             async cancelAsPassenger(rideId, btn) {
+                if (!confirm('Cancel your seat on this ride? Your Nexar will be notified.')) return;
                 this.busy = true;
                 this.setButtonLoading(btn, 'Cancelling…');
                 try {
@@ -1359,6 +1454,55 @@
                 }
             }
 
+            toggleNotifications() {
+                const panel = document.getElementById('notifPanel');
+                if (!panel) return;
+                if (panel.style.display === 'none' || !panel.style.display) {
+                    panel.innerHTML = this.ui.renderNotificationPanel();
+                    panel.style.display = 'block';
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+
+            async markAllNotificationsRead() {
+                try {
+                    await this.store.markAllNotificationsRead(this.ui.currentUser.email);
+                    const panel = document.getElementById('notifPanel');
+                    if (panel) panel.innerHTML = this.ui.renderNotificationPanel();
+                    this.refreshBellBadge();
+                } catch (e) {
+                    console.error('Mark all read failed:', e);
+                }
+            }
+
+            async openNotification(id, rideId) {
+                try {
+                    await this.store.markNotificationRead(id);
+                } catch (e) { /* ignore */ }
+                if (rideId) {
+                    this.switchTab('rides');
+                } else {
+                    const panel = document.getElementById('notifPanel');
+                    if (panel) panel.innerHTML = this.ui.renderNotificationPanel();
+                }
+                this.refreshBellBadge();
+            }
+
+            refreshBellBadge() {
+                const unread = (this.store.getNotifications() || []).filter(n => !n.read).length;
+                const btn = document.querySelector('button[onclick="app.toggleNotifications()"]');
+                if (!btn) return;
+                const old = btn.querySelector('span');
+                if (old) old.remove();
+                if (unread > 0) {
+                    const span = document.createElement('span');
+                    span.style.cssText = 'position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border-radius:10px; padding:1px 6px; font-size:11px; font-weight:700;';
+                    span.textContent = unread;
+                    btn.appendChild(span);
+                }
+            }
+
             async refresh(btn) {
                 this.busy = true;
                 this.setButtonLoading(btn, 'Refreshing…');
@@ -1373,11 +1517,15 @@
                 }
             }
 
-            async startRide(rideId, btn) {
+                        async startRide(rideId, btn) {
+                if (!confirm('Start the ride? Passengers will be notified.')) return;
                 this.busy = true;
                 this.setButtonLoading(btn, 'Starting…');
                 try {
-                    await this.store.updateRide(rideId, { status: 'active' });
+                    await this.callMatchingEngine({ action: 'startRide', rideId });
+                    await this.store.init();
+                    await this.store.loadNotifications(this.ui.currentUser.email);
+                    this.refreshBellBadge();
                     this.ui.switchTab('rides');
                 } catch (err) {
                     console.error('Start ride failed:', err);
@@ -1389,10 +1537,14 @@
             }
 
             async completeRide(rideId, btn) {
+                if (!confirm('Mark the ride as completed? Passengers will be notified.')) return;
                 this.busy = true;
                 this.setButtonLoading(btn, 'Completing…');
                 try {
-                    await this.store.updateRide(rideId, { status: 'completed' });
+                    await this.callMatchingEngine({ action: 'completeRide', rideId });
+                    await this.store.init();
+                    await this.store.loadNotifications(this.ui.currentUser.email);
+                    this.refreshBellBadge();
                     this.ui.switchTab('rides');
                 } catch (err) {
                     console.error('Complete ride failed:', err);
@@ -1402,6 +1554,7 @@
                     this.busy = false;
                 }
             }
+            
         }
 
         // ==================== INITIALIZE APP ====================

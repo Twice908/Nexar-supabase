@@ -1,0 +1,9 @@
+select net.http_post(
+  url := 'https://dhozznjdpzwmjfcwyhte.supabase.co/functions/v1/matching-engine',
+  headers := jsonb_build_object(
+    'Content-Type','application/json',
+    'apikey','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM',
+    'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM'
+  ),
+  body := '{"action":"scheduleRides","tripType":"morning"}'::jsonb
+);
