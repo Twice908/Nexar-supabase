@@ -204,6 +204,9 @@
   margin: var(--s-4) 0;
   overflow: hidden;
   background: var(--bg-secondary);
+  position: relative;
+  z-index: 0;
+  isolation: isolate;   /* traps Leaflet's internal z-indexes inside this box */
 }
 
 .driver-chip {
