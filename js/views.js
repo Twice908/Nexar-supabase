@@ -3,7 +3,8 @@ import { icons, escapeHtml, initials } from './ui.js';
 export function LoginView() {
   return `
     <div class="auth-screen">
-      <img class="auth-logo" src="assets/logo-long.svg" alt="Nexar">
+      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
       <h1 class="auth-heading">Welcome back.</h1>
       <p class="auth-sub">Sign in to find your Nexar for today's commute.</p>
       <div class="auth-form">
@@ -28,7 +29,8 @@ export function LoginView() {
 export function OnboardingView() {
   return `
     <div class="auth-screen">
-      <img class="auth-logo" src="assets/logo-long.svg" alt="Nexar">
+      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
       <h1 class="auth-heading">Create your account.</h1>
       <p class="auth-sub">A few details so we can match you with the right Nexar.</p>
       <form id="onboardingForm" class="auth-form">

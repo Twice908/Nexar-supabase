@@ -187,3 +187,7 @@ img, svg { display: block; max-width: 100%; }
     linear-gradient(135deg, transparent 49.7%, var(--divider) 49.7%, var(--divider) 50.3%, transparent 50.3%);
   pointer-events: none;
 }
+/* ——— Theme-aware logos ——— */
+.logo-dark-theme { display: none; }
+[data-theme="dark"] .logo-light-theme { display: none; }
+[data-theme="dark"] .logo-dark-theme  { display: block; }

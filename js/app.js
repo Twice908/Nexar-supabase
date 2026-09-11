@@ -72,7 +72,8 @@ class App {
     return `
       <div class="app-shell">
         <header class="topbar">
-          <img class="topbar-logo" src="assets/logo-short.svg" alt="Nexar">
+          <img class="topbar-logo logo-light-theme" src="assets/logo-short-dark.svg" alt="Nexar">
+          <img class="topbar-logo logo-dark-theme"  src="assets/logo-short-white.svg" alt="Nexar">
           <div class="topbar-actions">
             <button class="icon-btn" onclick="app.toggleNotifications()" aria-label="Notifications">
               ${icons.bell}
