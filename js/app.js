@@ -15,6 +15,8 @@ class App {
     this.busy = false;
     this._pollingHandle = null;
     this._lastRidesHash = '';
+    this._lastNotifHash = '';
+    this._tabJustChanged = false;
     this.rideMaps = new Map();
 
     // expose public handlers globally for onclick
@@ -56,6 +58,11 @@ class App {
     } else {
       root.innerHTML = this.dashboardHtml();
       this.attachDashboardHandlers();
+      const content = document.getElementById('appContent');
+      if (content && this._tabJustChanged) {
+        content.classList.add('tab-enter');
+        this._tabJustChanged = false;
+      }
       if (this.activeTab === 'rides') this.mountRideMaps();
       if (this.activeTab === 'home') this.hydrateRideCards();
     }
@@ -107,6 +114,7 @@ class App {
   switchTab(tab) {
     if (tab === this.activeTab) return;
     this.activeTab = tab;
+    this._tabJustChanged = true;
     this.render();
   }
 
@@ -400,19 +408,72 @@ class App {
       const user = this.store.getUserByEmail(this.currentUser.email);
       if (user) this.currentUser = user;
 
-      if (this.activeTab === 'rides') {
-        const hash = this.store.getRides()
-          .map(r => `${r.id}:${r.status}:${(r.passengers||[]).length}:${r.driver}`).sort().join('|');
-        if (hash !== this._lastRidesHash) { this._lastRidesHash = hash; this.render(); }
-      } else {
-        // just refresh bell + home hero
-        this.render();
+      const ridesHash = this.ridesHash();
+      const notifHash = this.notifHash();
+
+      // Update bell badge in-place if only notifications changed.
+      if (notifHash !== this._lastNotifHash) {
+        this._lastNotifHash = notifHash;
+        this.updateBellBadge();
       }
+
+      // Only touch the content DOM if the current tab's data actually changed.
+      if (this.activeTab === 'rides' && ridesHash !== this._lastRidesHash) {
+        this._lastRidesHash = ridesHash;
+        this.renderContentOnly();
+      } else if (this.activeTab === 'home' && ridesHash !== this._lastRidesHash) {
+        this._lastRidesHash = ridesHash;
+        this.renderContentOnly();
+      }
+      // Profile tab has no polling-driven state → never re-render from poll.
     } catch (e) {
       if (String(e.message).includes('401')) {
         if (!(await tryRefreshToken(this.store))) this.logout();
       }
     }
+  }
+
+  ridesHash() {
+    return this.store.getRides()
+      .map(r => `${r.id}:${r.status}:${(r.passengers||[]).length}:${r.driver}:${r.startedAt||''}:${r.completedAt||''}:${r.cancelledAt||''}`)
+      .sort()
+      .join('|');
+  }
+
+  notifHash() {
+    const n = this.store.getNotifications() || [];
+    return `${n.length}:${n.filter(x => !x.read).length}`;
+  }
+
+  updateBellBadge() {
+    const btn = document.querySelector('button[onclick="app.toggleNotifications()"]');
+    if (!btn) return;
+    const unread = (this.store.getNotifications() || []).filter(n => !n.read).length;
+    let badge = btn.querySelector('.badge');
+    if (unread > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge';
+        btn.appendChild(badge);
+      }
+      badge.textContent = unread > 9 ? '9+' : unread;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  // Re-render only the tab content, not the shell (topbar/nav stay put).
+  renderContentOnly() {
+    const content = document.getElementById('appContent');
+    if (!content) return;
+    this.destroyRideMaps();
+    const user = this.currentUser;
+    content.innerHTML =
+      this.activeTab === 'home'  ? HomeView({ user, rides: this.store.getRides(), notifications: this.store.getNotifications() }) :
+      this.activeTab === 'rides' ? RidesView({ user, rides: this.store.getRides() }) :
+                                   ProfileView({ user });
+    if (this.activeTab === 'rides') this.mountRideMaps();
+    if (this.activeTab === 'home') this.hydrateRideCards();
   }
 
   // ============ maps ============

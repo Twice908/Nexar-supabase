@@ -89,6 +89,10 @@ img, svg { display: block; max-width: 100%; }
   flex: 1;
   padding: var(--s-5) var(--s-4) calc(var(--bottomnav-h) + var(--safe-bottom) + var(--s-8));
   overflow-y: auto;
+}
+
+/* Animation only applied when the tab actually changes — not on polling */
+.app-content.tab-enter {
   animation: fade-in var(--dur) var(--ease);
 }
 
