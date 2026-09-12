@@ -2,6 +2,7 @@ import { DataStore, OnboardingManager, setAuthToken, tryRefreshToken,
          supabaseAuthFetch, geocodeAddress, callMatchingEngine,
          parseAuthHash, clearAuthHash } from './core.js';
 import { toast, openSheet, openModal, toggleTheme, theme, escapeHtml } from './ui.js';
+import { initPush } from './push.js';
 import { LoginView, OnboardingView, HomeView, RidesView, ProfileView,
          NotificationsSheet, EditProfileModal, FinishProfileView } from './views.js';
 import { icons } from './ui.js';
@@ -695,6 +696,8 @@ class App {
   startPolling() {
     if (this._pollingHandle) return;
     this._pollingHandle = setInterval(() => this.pollTick(), 30000);
+    if (this.currentUser?.email) initPush(this.currentUser.email);
+
   }
   async pollTick() {
     if (this.busy || this.currentView !== "dashboard" || !this.currentUser)

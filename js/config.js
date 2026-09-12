@@ -1,2 +1,3 @@
 export const SUPABASE_URL = 'https://dhozznjdpzwmjfcwyhte.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRob3p6bmpkcHp3bWpmY3d5aHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDMwNjEsImV4cCI6MjEwNDU3OTA2MX0.JjM146qzSfAiDQU0c_ymsPxMKZAThyYTqqvhQdGndwM';
+export const VAPID_PUBLIC_KEY = 'BHUXAihLFZI0Ay4HeuYG2fczdRwgUsnUIGSiLEGyrbljhIHdtKDtAOFJdcuCrjZs9Ji4fZK7Pq-ntmRKoj4Mo3E';
