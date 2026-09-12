@@ -40,20 +40,15 @@ class App {
   }
 
   // ============ router ============
-  render() {
-    const root = document.getElementById("root");
-    const session = this.store.getSession();
+    render() {
+    const root = document.getElementById('root');
 
-    if (session.loggedIn && session.email) {
-      const user = this.store.getUserByEmail(session.email);
-      if (user) {
-        this.currentUser = user;
-        this.currentView = "dashboard";
-      } else if (this.currentView !== "onboarding")
-        this.currentView = "onboarding";
-    } else if (this.currentView !== "onboarding") {
-      this.currentView = "login";
-    }
+    // currentView is owned exclusively by start(), handleLogin(),
+    // handleOnboarding(), handleFinishProfile(), showLogin(), and logout().
+    // render() must NOT override it based on session state — doing so was
+    // forcing every view back to 'onboarding' whenever an authenticated user
+    // had no profile row yet (the exact state right after email confirmation).
+    if (!this.currentView) this.currentView = 'login';
 
     this.destroyRideMaps();
 
