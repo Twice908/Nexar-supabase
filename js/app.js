@@ -369,7 +369,7 @@ class App {
         body: JSON.stringify({
           email: data.email,
           password,
-          email_redirect_to: 'https://twice908.github.io/Nexar-supabase/'
+          redirect_to: 'https://twice908.github.io/Nexar-supabase/'
         })
       });
 
