@@ -1,16 +1,19 @@
 import { icons, escapeHtml, initials } from './ui.js';
 
-export function LoginView() {
+export function LoginView({ banner, prefillEmail } = {}) {
+  const bannerHtml = banner ? `<div class="alert alert-warning">${escapeHtml(banner)}</div>` : '';
+  const emailVal = prefillEmail ? `value="${escapeHtml(prefillEmail)}"` : '';
   return `
     <div class="auth-screen">
       <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
       <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
       <h1 class="auth-heading">Welcome back.</h1>
       <p class="auth-sub">Sign in to find your Nexar for today's commute.</p>
+      ${bannerHtml}
       <div class="auth-form">
         <div class="field">
           <label class="field-label" for="loginEmail">Email</label>
-          <input class="field-input" type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+          <input class="field-input" type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" ${emailVal}>
         </div>
         <div class="field">
           <label class="field-label" for="loginPassword">Password</label>
@@ -29,6 +32,12 @@ export function LoginView() {
 export function OnboardingView() {
   return `
     <div class="auth-screen">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom: var(--s-6);">
+        <button class="icon-btn" onclick="app.showLogin()" aria-label="Back to sign in">
+          ${icons.chevronLeft}
+        </button>
+        <span class="caption">Back to sign in</span>
+      </div>
       <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
       <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
       <h1 class="auth-heading">Create your account.</h1>
@@ -113,6 +122,52 @@ export function HomeView({ user, rides, notifications }) {
         ${rowSimple(icons.car, 'Vehicle', `${user.carCompany} ${user.carModel}`)}
         ${rowSimple(icons.check, 'Plate', user.carNumber)}
       </div>
+    </div>
+  `;
+}
+
+export function FinishProfileView({ pending, email }) {
+  const p = pending || {};
+  const v = (k, fallback = '') => escapeHtml(p[k] ?? fallback);
+  const selectedSeat = p.vacantSeats || 3;
+
+  return `
+    <div class="auth-screen">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom: var(--s-6);">
+        <button class="icon-btn" onclick="app.logout()" aria-label="Sign out">
+          ${icons.chevronLeft}
+        </button>
+        <span class="caption">Sign out</span>
+      </div>
+
+      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
+
+      <div style="margin-bottom: 10px;">
+        <span class="pill pill-success"><span class="dot"></span>Email confirmed</span>
+      </div>
+      <h1 class="auth-heading">Finish your profile.</h1>
+      <p class="auth-sub">Signed in as <strong>${escapeHtml(email)}</strong>. A few details so we can match you with rides.</p>
+
+      <form id="finishProfileForm" class="auth-form">
+        <div class="field"><label class="field-label" for="fpName">Full name</label><input class="field-input" id="fpName" type="text" value="${v('name')}" placeholder="Your name"></div>
+        <div class="field"><label class="field-label" for="fpMobile">Mobile number</label><input class="field-input" id="fpMobile" type="tel" value="${v('mobile')}" placeholder="10 digits"></div>
+        <div class="field"><label class="field-label" for="fpHomeZone">Home zone</label><input class="field-input" id="fpHomeZone" type="text" value="${v('homeZone')}" placeholder="e.g., Andheri West, Mumbai"></div>
+        <div class="field"><label class="field-label" for="fpOfficeAddress">Office address</label><textarea class="field-textarea" id="fpOfficeAddress" placeholder="Street, area, city">${v('officeAddress')}</textarea></div>
+        <div class="field"><label class="field-label" for="fpOfficeEntryTime">Office entry time</label><input class="field-input" id="fpOfficeEntryTime" type="time" value="${v('officeEntryTime', '09:00')}"></div>
+        <div class="field"><label class="field-label" for="fpOfficeExitTime">Office exit time</label><input class="field-input" id="fpOfficeExitTime" type="time" value="${v('officeExitTime', '18:00')}"></div>
+        <div class="field"><label class="field-label" for="fpCarCompany">Car company</label><input class="field-input" id="fpCarCompany" type="text" value="${v('carCompany')}" placeholder="e.g., Maruti Suzuki"></div>
+        <div class="field"><label class="field-label" for="fpCarModel">Car model</label><input class="field-input" id="fpCarModel" type="text" value="${v('carModel')}" placeholder="e.g., Swift"></div>
+        <div class="field"><label class="field-label" for="fpCarNumber">Car plate</label><input class="field-input" id="fpCarNumber" type="text" value="${v('carNumber')}" placeholder="e.g., MH14KM1234" autocapitalize="characters"></div>
+        <div class="field">
+          <label class="field-label" for="fpVacantSeats">Vacant seats</label>
+          <select class="field-select" id="fpVacantSeats">
+            ${[2,3,4].map(n => `<option value="${n}" ${selectedSeat === n ? 'selected' : ''}>${n}</option>`).join('')}
+          </select>
+        </div>
+        <div id="finishProfileError"></div>
+        <button type="submit" id="finishProfileBtn" class="btn btn-primary btn-block" style="margin-top:8px">Save profile</button>
+      </form>
     </div>
   `;
 }

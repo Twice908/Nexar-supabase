@@ -35,6 +35,39 @@ export async function supabaseAuthFetch(path, options = {}) {
   return data;
 }
 
+// Parses the URL fragment that Supabase embeds after a magic-link / email
+// confirmation redirect. Format:
+//   #access_token=...&refresh_token=...&expires_in=...&token_type=bearer&type=signup
+// Returns null if no valid hash is present.
+export function parseAuthHash() {
+  const hash = window.location.hash || '';
+  if (!hash || hash.length < 2) return null;
+  const params = new URLSearchParams(hash.substring(1));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const type = params.get('type');
+  if (!accessToken) return null;
+
+  // Extract email + auth id by decoding the JWT payload (middle segment).
+  let email = null, authId = null;
+  try {
+    const b64 = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    email = payload.email || null;
+    authId = payload.sub || null;
+  } catch (e) { /* malformed token — treat as no hash */ }
+
+  return { accessToken, refreshToken, type, email, authId };
+}
+
+// Removes the auth fragment from the URL so a refresh doesn't re-consume it.
+export function clearAuthHash() {
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+}
+
 export async function geocodeAddress(address) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, {
     method: 'POST',
