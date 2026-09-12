@@ -225,8 +225,13 @@ class App {
       if (officeC) { data.officeLat = officeC.lat; data.officeLng = officeC.lng; }
 
       const auth = await supabaseAuthFetch('signup', {
-        method: 'POST', body: JSON.stringify({ email: data.email, password })
-      });
+  method: 'POST',
+  body: JSON.stringify({
+    email: data.email,
+    password,
+    email_redirect_to: 'https://twice908.github.io/Nexar-supabase/'
+  })
+});
       if (!auth.access_token) {
         errEl.innerHTML = `<div class="alert alert-success">Account created — check your email to confirm, then sign in.</div>`;
         btn.disabled = false; btn.textContent = 'Create account';
