@@ -364,14 +364,13 @@ class App {
       if (officeC) { data.officeLat = officeC.lat; data.officeLng = officeC.lng; }
       this.savePendingSignup(data.email, data);
 
-      const auth = await supabaseAuthFetch('signup', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: data.email,
-          password,
-          redirect_to: 'https://twice908.github.io/Nexar-supabase/'
-        })
-      });
+      const auth = await supabaseAuthFetch(
+        'signup?redirect_to=' + encodeURIComponent('https://twice908.github.io/Nexar-supabase/'),
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: data.email, password })
+        }
+      );
 
       // Case A — email confirmation required. No session yet.
       if (!auth.access_token) {
