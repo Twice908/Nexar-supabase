@@ -316,13 +316,17 @@ function rideCard(ride, user, past) {
 function actionButtons(ride, isDriver) {
   const btns = [];
   if (isDriver) {
-    if (ride.status === 'matched') btns.push(`<button class="btn btn-primary btn-sm" style="flex:1" onclick="app.startRide('${ride.id}', this)">${icons.play} Start</button>`);
-    if (ride.status === 'active')  btns.push(`<button class="btn btn-primary btn-sm" style="flex:1" onclick="app.completeRide('${ride.id}', this)">${icons.check} Complete</button>`);
-    if (['matched','active'].includes(ride.status))
+    if (ride.status === 'matched') {
+      btns.push(`<button class="btn btn-primary btn-sm" style="flex:1" onclick="app.startRide('${ride.id}', this)">${icons.play} Start</button>`);
       btns.push(`<button class="btn btn-danger btn-sm" onclick="app.cancelAsDriver('${ride.id}', this)">Cancel</button>`);
+    }
+    if (ride.status === 'active') {
+      btns.push(`<button class="btn btn-primary btn-sm" style="flex:1" onclick="app.completeRide('${ride.id}', this)">${icons.check} Complete</button>`);
+    }
   } else {
-    if (['matched','active'].includes(ride.status))
+    if (ride.status === 'matched') {
       btns.push(`<button class="btn btn-secondary btn-sm" style="flex:1" onclick="app.cancelAsPassenger('${ride.id}', this)">Cancel seat</button>`);
+    }
   }
   return btns.length ? `<div class="ride-actions">${btns.join('')}</div>` : '';
 }
