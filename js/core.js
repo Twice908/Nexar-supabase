@@ -134,6 +134,7 @@ export function rideFromDb(row) {
     passengers: row.passengers, group: row.group, status: row.status,
     pickupTime: row.pickup_time, dropoffTime: row.dropoff_time,
     pickupOrder: row.pickup_order || [], dropoffOrder: row.dropoff_order || [],
+    droppedOff: row.dropped_off || [],
     cancellationReason: row.cancellation_reason,
     startedAt: row.started_at, completedAt: row.completed_at, cancelledAt: row.cancelled_at,
     date: row.date, createdAt: row.created_at

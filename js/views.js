@@ -239,8 +239,6 @@ function rideCard(ride, user, past) {
     `;
   }
 
-  const driverUser = ride.driver ? { name: '', carCompany: '', carModel: '', carNumber: '' } : null;
-
   const timelineItems = [];
   if (ride.startedAt)   timelineItems.push(['Started', fmtTime(ride.startedAt)]);
   if (ride.completedAt) timelineItems.push(['Completed', fmtTime(ride.completedAt)]);
@@ -252,12 +250,13 @@ function rideCard(ride, user, past) {
       <span>Walk ~${meGroup.walkMin} min (${Math.round((meGroup.walkKm||0) * 1000)} m) to your office</span>
     </div>` : '';
 
-  const driverChip = (!isDriver && ride.driver) ? `
+  const driverUser = (!isDriver && ride.driver) ? window.app.store.getUserByEmail(ride.driver) : null;
+  const driverChip = (!isDriver && driverUser) ? `
     <div class="driver-chip">
-      <div class="driver-chip-avatar" id="driver-avatar-${ride.id}">?</div>
+      <div class="driver-chip-avatar">${(driverUser.name || '?').trim()[0].toUpperCase()}</div>
       <div class="driver-chip-body">
-        <div class="driver-chip-name" id="driver-name-${ride.id}">Loading…</div>
-        <div class="driver-chip-car" id="driver-car-${ride.id}"></div>
+        <div class="driver-chip-name">${escapeHtml(driverUser.name || 'Nexar')}</div>
+        <div class="driver-chip-car">${escapeHtml(`${driverUser.carCompany || ''} ${driverUser.carModel || ''}`.trim())} · ${escapeHtml(driverUser.carNumber || '')}</div>
       </div>
     </div>
   ` : '';
@@ -267,14 +266,59 @@ function rideCard(ride, user, past) {
       <div class="meta" style="margin-bottom:8px">Passengers</div>
       ${(ride.pickupOrder && ride.pickupOrder.length > 0 ? ride.pickupOrder : ride.passengers).map((email, i) => {
         const g = (ride.group || []).find(x => x.email === email);
+        const p = window.app.store.getUserByEmail(email);
+        const name = p?.name || g?.name || email;
         const walk = g && typeof g.walkMin === 'number' ? g.walkMin : null;
         const km = g && typeof g.walkKm === 'number' ? g.walkKm : null;
+        const dropped = (ride.droppedOff || []).includes(email);
+        const statusPill = dropped
+          ? `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`
+          : (ride.status === 'active'
+              ? `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`
+              : `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`);
+         const dropBtn = (ride.status === 'active' && !dropped)
+          ? `<button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px; margin-left:auto;" onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>`
+          : '';
         return `
           <div class="passenger-row">
             <div class="passenger-num">${i + 1}</div>
             <div class="passenger-body">
-              <div class="passenger-name" id="passenger-name-${ride.id}-${i}">…</div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div class="passenger-name">${escapeHtml(name)}</div>
+                ${statusPill}
+                ${dropBtn}
+              </div>
               ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+    // Passenger's view: list co-passengers + status
+  const coPassengerList = (!isDriver && (ride.passengers || []).length > 0) ? `
+    <div class="passenger-list">
+      <div class="meta" style="margin-bottom:8px">Riders</div>
+      ${(ride.pickupOrder && ride.pickupOrder.length > 0 ? ride.pickupOrder : ride.passengers).map((email, i) => {
+        const g = (ride.group || []).find(x => x.email === email);
+        const p = window.app.store.getUserByEmail(email);
+        const name = p?.name || g?.name || email;
+        const isMe = email === user.email;
+        const dropped = (ride.droppedOff || []).includes(email);
+        const statusPill = dropped
+          ? `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`
+          : (ride.status === 'active'
+              ? `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`
+              : `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`);
+        return `
+          <div class="passenger-row">
+            <div class="passenger-num">${i + 1}</div>
+            <div class="passenger-body">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div class="passenger-name">${escapeHtml(name)}${isMe ? ' <span style="color:var(--text-tertiary); font-size:11px;">(you)</span>' : ''}</div>
+                ${statusPill}
+              </div>
             </div>
           </div>
         `;
@@ -307,6 +351,7 @@ function rideCard(ride, user, past) {
         ${myWalk}
         ${mapId ? `<div class="ride-map" id="${mapId}"></div>` : ''}
         ${passengerList}
+        ${coPassengerList}
         ${!past ? actionButtons(ride, isDriver) : ''}
       </div>
     </div>

@@ -33,7 +33,7 @@ class App {
       'handleLogin','showOnboarding','showLogin','handleOnboarding','handleFinishProfile','logout',
       'switchTab','cancelAsDriver','cancelAsPassenger','refresh','startRide','completeRide',
       'toggleNotifications','markAllNotificationsRead','openNotification','refreshBellBadge',
-      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave'
+      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave', 'markDropped'
     ];
     methods.forEach((m) => {
       this[m] = this[m].bind(this);
@@ -536,6 +536,23 @@ class App {
       this.switchTab("rides");
     } catch (e) {
       toast(e.message, "error");
+      this.setBtn(btn, null);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+    async markDropped(rideId, passengerEmail, btn) {
+    if (!confirm('Mark this passenger as dropped off?')) return;
+    this.busy = true;
+    this.setBtn(btn, '…');
+    try {
+      await callMatchingEngine({ action: 'markDropped', rideId, passengerEmail });
+      await this.store.init();
+      await this.store.loadNotifications(this.currentUser.email);
+      this.switchTab('rides');
+    } catch (e) {
+      toast(e.message, 'error');
       this.setBtn(btn, null);
     } finally {
       this.busy = false;
