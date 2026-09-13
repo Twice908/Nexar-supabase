@@ -32,6 +32,12 @@
 .driver-chip .btn.icon-btn {
   padding: 0;
 }
+
+.passenger-row .btn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
 .ride-actions a.btn {
   text-decoration: none;
 }

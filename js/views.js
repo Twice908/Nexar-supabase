@@ -273,7 +273,7 @@ function rideCard(ride, user, past) {
     </div>
   ` : '';
 
-    const passengerList = isDriver ? `
+      const passengerList = isDriver ? `
     <div class="passenger-list">
       <div class="meta" style="margin-bottom:8px">Passengers</div>
       ${(ride.pickupOrder && ride.pickupOrder.length > 0 ? ride.pickupOrder : ride.passengers).map((email, i) => {
@@ -297,12 +297,27 @@ function rideCard(ride, user, past) {
           statusPill = `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Not started</span>`;
         }
 
-        let actionBtn = '';
-        if (ride.status === 'active' && !picked) {
-          actionBtn = `<button class="btn btn-primary" style="width:auto; padding:4px 10px; font-size:12px;" onclick="app.markPickedUp('${ride.id}', '${email}', this)">Onboard</button>`;
-        } else if (ride.status === 'active' && picked && !dropped) {
-          actionBtn = `<button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px;" onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>`;
-        }
+        // Both buttons always rendered when ride is active; disabled state
+        // flips instantly on tap so the driver doesn't wait for polling.
+        const showActions = ride.status === 'active';
+        const onboardDisabled = picked ? 'disabled' : '';
+        const droppedDisabled = (!picked || dropped) ? 'disabled' : '';
+        const actionsRow = showActions ? `
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button
+              class="btn btn-primary btn-sm"
+              style="flex:1;"
+              data-pickup-btn="${ride.id}|${email}"
+              ${onboardDisabled}
+              onclick="app.markPickedUp('${ride.id}', '${email}', this)">Onboard</button>
+            <button
+              class="btn btn-outline btn-sm"
+              style="flex:1;"
+              data-drop-btn="${ride.id}|${email}"
+              ${droppedDisabled}
+              onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>
+          </div>
+        ` : '';
 
         const pPhone = p?.mobile;
         const contactBtns = pPhone ? `
@@ -310,23 +325,24 @@ function rideCard(ride, user, past) {
           <a href="${buildWhatsAppUrl(pPhone, `Hi ${name}, about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" style="width:30px;height:30px;" title="WhatsApp passenger">${iconWhatsApp()}</a>
         ` : '';
 
-        // Timestamp for dropoff if available
         const ev = (ride.dropoffEvents || []).find(e => e.email === email);
         const dropTimeLabel = ev && ev.at ? `<div class="passenger-walk">Dropped at ${new Date(ev.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>` : '';
 
         return `
-          <div class="passenger-row">
-            <div class="passenger-num">${i + 1}</div>
-            <div class="passenger-body">
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <div class="passenger-name">${escapeHtml(name)}</div>
-                ${statusPill}
-                ${actionBtn}
-                <div style="margin-left:auto; display:flex; gap:4px;">${contactBtns}</div>
+          <div class="passenger-row" style="display:block;">
+            <div style="display:flex; align-items:flex-start; gap:10px;">
+              <div class="passenger-num">${i + 1}</div>
+              <div class="passenger-body" style="flex:1;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="passenger-name">${escapeHtml(name)}</div>
+                  ${statusPill}
+                  <div style="margin-left:auto; display:flex; gap:4px;">${contactBtns}</div>
+                </div>
+                ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
+                ${dropTimeLabel}
               </div>
-              ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
-              ${dropTimeLabel}
             </div>
+            ${actionsRow}
           </div>
         `;
       }).join('')}

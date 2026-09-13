@@ -542,17 +542,56 @@ class App {
     }
   }
 
-    async markPickedUp(rideId, passengerEmail, btn) {
+    // Immediately toggles the two action buttons in the DOM so the driver
+  // doesn't wait for the next poll cycle before seeing the state change.
+  flipPassengerButtons(rideId, passengerEmail, newState /* 'picked' | 'dropped' */) {
+    const onboardBtn = document.querySelector(`[data-pickup-btn="${rideId}|${passengerEmail}"]`);
+    const dropBtn = document.querySelector(`[data-drop-btn="${rideId}|${passengerEmail}"]`);
+
+    if (newState === 'picked') {
+      if (onboardBtn) { onboardBtn.disabled = true; onboardBtn.textContent = 'Onboarded'; }
+      if (dropBtn) dropBtn.disabled = false;
+      // Update the sibling status pill if we can find it
+      const row = onboardBtn ? onboardBtn.closest('.passenger-row') : null;
+      if (row) {
+        const pill = row.querySelector('.pill');
+        if (pill) {
+          pill.className = 'pill pill-info';
+          pill.style.fontSize = '10px';
+          pill.style.padding = '2px 7px';
+          pill.innerHTML = '<span class="dot"></span>On board';
+        }
+      }
+    } else if (newState === 'dropped') {
+      if (dropBtn) { dropBtn.disabled = true; dropBtn.textContent = 'Dropped ✓'; }
+      if (onboardBtn) onboardBtn.disabled = true;
+      const row = dropBtn ? dropBtn.closest('.passenger-row') : null;
+      if (row) {
+        const pill = row.querySelector('.pill');
+        if (pill) {
+          pill.className = 'pill pill-success';
+          pill.style.fontSize = '10px';
+          pill.style.padding = '2px 7px';
+          pill.innerHTML = '<span class="dot"></span>Dropped';
+        }
+      }
+    }
+  }
+
+  async markPickedUp(rideId, passengerEmail, btn) {
+    // 1. Optimistic flip so the UI is instant.
+    this.flipPassengerButtons(rideId, passengerEmail, 'picked');
+
     this.busy = true;
-    this.setBtn(btn, '…');
     try {
       await callMatchingEngine({ action: 'markPickedUp', rideId, passengerEmail });
+      // Silent refresh — don't re-render the whole tab, just sync cache.
       await this.store.init();
       await this.store.loadNotifications(this.currentUser.email);
-      this.switchTab('rides');
     } catch (e) {
       toast(e.message, 'error');
-      this.setBtn(btn, null);
+      // Re-render to restore the correct state on failure.
+      this.switchTab('rides');
     } finally {
       this.busy = false;
     }
@@ -560,11 +599,13 @@ class App {
 
   async markDropped(rideId, passengerEmail, btn) {
     if (!confirm('Mark this passenger as dropped off?')) return;
-    this.busy = true;
-    this.setBtn(btn, '…');
 
-    // Try to capture current GPS. Timeout + silent fallback so a slow/blocked
-    // GPS doesn't hang the tap.
+    // 1. Optimistic flip.
+    this.flipPassengerButtons(rideId, passengerEmail, 'dropped');
+
+    this.busy = true;
+
+    // Try to capture GPS; timeout + silent fallback.
     let lat = null, lng = null;
     try {
       const pos = await new Promise((resolve, reject) => {
@@ -584,10 +625,9 @@ class App {
       await callMatchingEngine({ action: 'markDropped', rideId, passengerEmail, lat, lng });
       await this.store.init();
       await this.store.loadNotifications(this.currentUser.email);
-      this.switchTab('rides');
     } catch (e) {
       toast(e.message, 'error');
-      this.setBtn(btn, null);
+      this.switchTab('rides');
     } finally {
       this.busy = false;
     }
