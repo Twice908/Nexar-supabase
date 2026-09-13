@@ -147,15 +147,16 @@ export function rideFromDb(row) {
 
 // ——— store ———
 export class DataStore {
-  constructor() { this.cache = { users: [], rides: [], schedules: [], driverLog: {}, notifications: [] }; }
+  constructor() { this.cache = { users: [], rides: [], schedules: [], driverLog: {}, notifications: [], ratings: [] }; }
 
   async init() {
     if (!localStorage.getItem('nexar_sessions')) localStorage.setItem('nexar_sessions', JSON.stringify({}));
-    const [usersRows, ridesRows, schedulesRows, driverLogRows] = await Promise.all([
+    const [usersRows, ridesRows, schedulesRows, driverLogRows, ratingsRows] = await Promise.all([
       supabaseFetch('users?select=*'),
       supabaseFetch('rides?select=*'),
       supabaseFetch('schedules?select=*'),
-      supabaseFetch('driver_log?select=*')
+      supabaseFetch('driver_log?select=*'),
+      supabaseFetch('ride_ratings?select=*')
     ]);
     this.cache.users = usersRows.map(userFromDb);
     this.cache.rides = ridesRows.map(rideFromDb);
@@ -164,7 +165,36 @@ export class DataStore {
     }));
     this.cache.driverLog = {};
     driverLogRows.forEach(r => { this.cache.driverLog[`${r.user_email}_${r.month}`] = r.ride_count; });
+    this.cache.ratings = ratingsRows.map(r => ({
+      id: r.id,
+      rideId: r.ride_id,
+      raterEmail: r.rater_email,
+      rateeEmail: r.ratee_email,
+      stars: r.stars,
+      comment: r.comment,
+      createdAt: r.created_at
+    }));
   }
+
+    getRatings() { return this.cache.ratings || []; }
+
+  getRatingFor(rideId, raterEmail, rateeEmail) {
+    return this.cache.ratings.find(r =>
+      r.rideId === rideId && r.raterEmail === raterEmail && r.rateeEmail === rateeEmail
+    );
+  }
+
+  getRatingsForRatee(rateeEmail) {
+    return this.cache.ratings.filter(r => r.rateeEmail === rateeEmail);
+  }
+
+  getAverageRating(email) {
+    const list = this.getRatingsForRatee(email);
+    if (!list.length) return null;
+    const sum = list.reduce((a, r) => a + r.stars, 0);
+    return { avg: (sum / list.length).toFixed(1), count: list.length };
+  }
+
 
   getUsers() { return this.cache.users; }
   getUserByEmail(e) { return this.cache.users.find(u => u.email === e); }

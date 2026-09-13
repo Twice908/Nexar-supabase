@@ -251,28 +251,26 @@ function rideCard(ride, user, past) {
     </div>` : '';
 
   const driverUser = (!isDriver && ride.driver) ? window.app.store.getUserByEmail(ride.driver) : null;
-  const driverChip = (!isDriver && driverUser) ? `
-    <div class="driver-chip">
-      <div class="driver-chip-avatar">${(driverUser.name || '?').trim()[0].toUpperCase()}</div>
-      <div class="driver-chip-body">
-        <div class="driver-chip-name">${escapeHtml(driverUser.name || 'Nexar')}</div>
-        <div class="driver-chip-car">${escapeHtml(`${driverUser.carCompany || ''} ${driverUser.carModel || ''}`.trim())} · ${escapeHtml(driverUser.carNumber || '')}</div>
+    const driverChip = (!isDriver && driverUser) ? (() => {
+    const avg = window.app.store.getAverageRating(driverUser.email);
+    const ratingHtml = avg
+      ? `<div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">★ ${avg.avg} · ${avg.count} rating${avg.count === 1 ? '' : 's'}</div>`
+      : '';
+    return `
+      <div class="driver-chip">
+        <div class="driver-chip-avatar">${(driverUser.name || '?').trim()[0].toUpperCase()}</div>
+        <div class="driver-chip-body">
+          <div class="driver-chip-name">${escapeHtml(driverUser.name || 'Nexar')}</div>
+          <div class="driver-chip-car">${escapeHtml(`${driverUser.carCompany || ''} ${driverUser.carModel || ''}`.trim())} · ${escapeHtml(driverUser.carNumber || '')}</div>
+          ${ratingHtml}
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          ${buildTelUrl(driverUser.mobile) ? `<a href="${buildTelUrl(driverUser.mobile)}" class="icon-btn" title="Call Nexar">${iconPhone()}</a>` : ''}
+          ${driverUser.mobile ? `<a href="${buildWhatsAppUrl(driverUser.mobile, `Hi ${driverUser.name}, this is about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" title="WhatsApp Nexar">${iconWhatsApp()}</a>` : ''}
+        </div>
       </div>
-      <div style="display:flex; gap:6px; flex-shrink:0;">
-        ${buildTelUrl(driverUser.mobile) ? `
-          <a href="${buildTelUrl(driverUser.mobile)}" class="icon-btn" title="Call Nexar" aria-label="Call Nexar">
-            ${iconPhone()}
-          </a>
-        ` : ''}
-        ${driverUser.mobile ? `
-          <a href="${buildWhatsAppUrl(driverUser.mobile, `Hi ${driverUser.name}, this is about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" title="WhatsApp Nexar" aria-label="WhatsApp Nexar">
-            ${iconWhatsApp()}
-          </a>
-        ` : ''}
-      </div>
-    </div>
-  ` : '';
-
+    `;
+  })() : '';
       const passengerList = isDriver ? `
     <div class="passenger-list">
       <div class="meta" style="margin-bottom:8px">Passengers</div>
@@ -416,6 +414,7 @@ function rideCard(ride, user, past) {
 
         ${passengerList}
         ${coPassengerList}
+        ${buildRatingBlock(ride, user, isDriver)}
         ${!past ? actionButtons(ride, isDriver) : ''}
       </div>
     </div>
@@ -523,6 +522,63 @@ function buildWhatsAppUrl(phone, text) {
 function buildTelUrl(phone) {
   const digits = (phone || '').replace(/\D/g, '');
   return digits ? `tel:+${digits.length === 10 ? '91' + digits : digits}` : null;
+}
+
+function buildRatingBlock(ride, user, isDriver) {
+  if (ride.status !== 'completed') return '';
+
+  const store = window.app.store;
+  const ratees = isDriver
+    ? (ride.passengers || [])
+    : (ride.driver ? [ride.driver] : []);
+
+  if (ratees.length === 0) return '';
+
+  const rows = ratees.map(email => {
+    const p = store.getUserByEmail(email);
+    const name = p?.name || email;
+    const existing = store.getRatingFor(ride.id, user.email, email);
+
+    if (existing) {
+      return `
+        <div class="passenger-row" style="display:block;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="passenger-body" style="flex:1;">
+              <div class="passenger-name">${escapeHtml(name)}</div>
+              <div class="passenger-walk">You rated ${'★'.repeat(existing.stars)}${'☆'.repeat(5 - existing.stars)}</div>
+              ${existing.comment ? `<div class="passenger-walk" style="font-style:italic;">"${escapeHtml(existing.comment)}"</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="passenger-row" style="display:block;" data-rate-row="${ride.id}|${email}">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="passenger-body" style="flex:1;">
+            <div class="passenger-name">Rate ${escapeHtml(name)}</div>
+            <div class="star-picker" data-star-target="${ride.id}|${email}">
+              ${[1,2,3,4,5].map(n => `
+                <button type="button" class="star-btn" data-stars="${n}" onclick="app.pickStars('${ride.id}', '${email}', ${n}, this)">★</button>
+              `).join('')}
+            </div>
+            <div class="rate-comment-row" style="margin-top:6px; display:none;" data-comment-for="${ride.id}|${email}">
+              <input type="text" class="field-input" style="height:38px; font-size:13px;" placeholder="Add a comment (optional)" data-comment-input="${ride.id}|${email}">
+              <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="app.submitRating('${ride.id}', '${email}', this)">Submit rating</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="passenger-list" style="margin-top:8px;">
+      <div class="meta" style="margin-bottom:8px">Rate this ride</div>
+      ${rows}
+    </div>
+  `;
 }
 
 function actionButtons(ride, isDriver) {

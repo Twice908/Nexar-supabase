@@ -33,7 +33,8 @@ class App {
       'handleLogin','showOnboarding','showLogin','handleOnboarding','handleFinishProfile','logout',
       'switchTab','cancelAsDriver','cancelAsPassenger','refresh','startRide','completeRide',
       'toggleNotifications','markAllNotificationsRead','openNotification','refreshBellBadge',
-      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped'
+      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped',
+      'pickStars', 'submitRating'
     ];
     methods.forEach((m) => {
       this[m] = this[m].bind(this);
@@ -113,6 +114,52 @@ class App {
 
   clearPendingSignup() {
     try { localStorage.removeItem('nexar_pending_signup'); } catch {}
+  }
+
+    // ============ ratings ============
+  pickStars(rideId, rateeEmail, stars, btn) {
+    // Highlight the chosen stars, reveal the comment box.
+    const row = document.querySelector(`[data-star-target="${rideId}|${rateeEmail}"]`);
+    if (row) {
+      row.querySelectorAll('.star-btn').forEach(b => {
+        const n = parseInt(b.dataset.stars, 10);
+        b.style.color = n <= stars ? '#f59e0b' : 'var(--text-tertiary)';
+      });
+      row.dataset.chosenStars = String(stars);
+    }
+    const commentRow = document.querySelector(`[data-comment-for="${rideId}|${rateeEmail}"]`);
+    if (commentRow) commentRow.style.display = 'block';
+  }
+
+  async submitRating(rideId, rateeEmail, btn) {
+    const row = document.querySelector(`[data-star-target="${rideId}|${rateeEmail}"]`);
+    const stars = row ? parseInt(row.dataset.chosenStars || '0', 10) : 0;
+    if (!stars) {
+      toast('Pick a star rating first', 'error');
+      return;
+    }
+    const commentInput = document.querySelector(`[data-comment-input="${rideId}|${rateeEmail}"]`);
+    const comment = commentInput ? commentInput.value.trim() : '';
+
+    this.busy = true;
+    this.setBtn(btn, 'Submitting…');
+    try {
+      await callMatchingEngine({
+        action: 'submitRating',
+        rideId,
+        raterEmail: this.currentUser.email,
+        rateeEmail,
+        stars,
+        comment
+      });
+      await this.store.init();
+      this.switchTab('rides');
+    } catch (e) {
+      toast(e.message, 'error');
+      this.setBtn(btn, null);
+    } finally {
+      this.busy = false;
+    }
   }
 
   dashboardHtml() {
@@ -939,11 +986,14 @@ class App {
     }
   }
 
-  ridesHash() {
+    ridesHash() {
+    const ratingKey = (this.store.getRatings() || [])
+      .map(r => `${r.rideId}:${r.raterEmail}:${r.rateeEmail}:${r.stars}`)
+      .sort()
+      .join(',');
     return this.store
       .getRides()
-      .map((r) => {
-        // Include a coarse position bucket so we re-render when the driver
+      .map((r) => {        // Include a coarse position bucket so we re-render when the driver
         // moves but not on every tiny GPS jitter.
         const pos = r.currentPosition;
         const posKey = pos
@@ -952,7 +1002,7 @@ class App {
         return `${r.id}:${r.status}:${(r.passengers || []).length}:${r.driver}:${r.startedAt || ""}:${r.completedAt || ""}:${r.cancelledAt || ""}:${posKey}`;
       })
       .sort()
-      .join("|");
+      .join("|") + '||R||' + ratingKey;
   }
 
   notifHash() {

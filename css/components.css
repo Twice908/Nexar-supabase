@@ -33,6 +33,23 @@
   padding: 0;
 }
 
+.star-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  transition: color 120ms var(--ease), transform 120ms var(--ease);
+}
+.star-btn:hover { transform: scale(1.15); }
+.star-btn:active { transform: scale(0.95); }
 .passenger-row .btn[disabled] {
   opacity: 0.35;
   cursor: not-allowed;
