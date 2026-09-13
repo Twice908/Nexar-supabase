@@ -258,6 +258,18 @@ function rideCard(ride, user, past) {
         <div class="driver-chip-name">${escapeHtml(driverUser.name || 'Nexar')}</div>
         <div class="driver-chip-car">${escapeHtml(`${driverUser.carCompany || ''} ${driverUser.carModel || ''}`.trim())} · ${escapeHtml(driverUser.carNumber || '')}</div>
       </div>
+      <div style="display:flex; gap:6px; flex-shrink:0;">
+        ${buildTelUrl(driverUser.mobile) ? `
+          <a href="${buildTelUrl(driverUser.mobile)}" class="icon-btn" title="Call Nexar" aria-label="Call Nexar">
+            ${iconPhone()}
+          </a>
+        ` : ''}
+        ${driverUser.mobile ? `
+          <a href="${buildWhatsAppUrl(driverUser.mobile, `Hi ${driverUser.name}, this is about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" title="WhatsApp Nexar" aria-label="WhatsApp Nexar">
+            ${iconWhatsApp()}
+          </a>
+        ` : ''}
+      </div>
     </div>
   ` : '';
 
@@ -279,6 +291,11 @@ function rideCard(ride, user, past) {
          const dropBtn = (ride.status === 'active' && !dropped)
           ? `<button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px; margin-left:auto;" onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>`
           : '';
+        const pPhone = p?.mobile;
+        const contactBtns = pPhone ? `
+          <a href="${buildTelUrl(pPhone)}" class="icon-btn" style="width:30px;height:30px;" title="Call passenger">${iconPhone()}</a>
+          <a href="${buildWhatsAppUrl(pPhone, `Hi ${name}, about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" style="width:30px;height:30px;" title="WhatsApp passenger">${iconWhatsApp()}</a>
+        ` : '';
         return `
           <div class="passenger-row">
             <div class="passenger-num">${i + 1}</div>
@@ -287,6 +304,7 @@ function rideCard(ride, user, past) {
                 <div class="passenger-name">${escapeHtml(name)}</div>
                 ${statusPill}
                 ${dropBtn}
+                <div style="margin-left:auto; display:flex; gap:4px;">${contactBtns}</div>
               </div>
               ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
             </div>
@@ -350,12 +368,118 @@ function rideCard(ride, user, past) {
         ${driverChip}
         ${myWalk}
         ${mapId ? `<div class="ride-map" id="${mapId}"></div>` : ''}
+
+        ${buildMapAndShareRow(ride, isDriver, user)}
+
         ${passengerList}
         ${coPassengerList}
         ${!past ? actionButtons(ride, isDriver) : ''}
       </div>
     </div>
   `;
+}
+
+// Builds the Google Maps button + Share button row.
+function buildMapAndShareRow(ride, isDriver, user) {
+  if (ride.status === 'no match' || ride.status === 'cancelled') return '';
+  const driver = window.app.store.getUserByEmail(ride.driver);
+  if (!driver) return '';
+
+  const isMorning = ride.tripType === 'morning';
+  const driverHome = [driver.homeLat, driver.homeLng];
+  const driverOffice = [driver.officeLat, driver.officeLng];
+  const start = isMorning ? driverHome : driverOffice;
+  const end = isMorning ? driverOffice : driverHome;
+
+  // Order passenger stops along the route using pickupOrder.
+  const ordered = (ride.pickupOrder && ride.pickupOrder.length > 0)
+    ? ride.pickupOrder
+    : (ride.passengers || []);
+  const passengerStops = ordered
+    .map(email => {
+      const p = window.app.store.getUserByEmail(email);
+      return p ? [p.homeLat, p.homeLng] : null;
+    })
+    .filter(Boolean);
+
+  const stops = [start, ...passengerStops, end];
+  const mapsUrl = buildGoogleMapsUrl(stops);
+
+  const shareText = [
+    `I'm on a Nexar ride (${ride.tripType} · ${ride.date}).`,
+    `Nexar: ${driver.name} — ${driver.carCompany} ${driver.carModel} (${driver.carNumber}).`,
+    `Pickup ${ride.pickupTime || '—'} · Dropoff ${ride.dropoffTime || '—'}.`,
+    `Track: ${window.location.origin}${window.location.pathname}`
+  ].join(' ');
+  const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+  return `
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex:1; text-decoration:none;">
+        ${iconMap()} <span>Open in Maps</span>
+      </a>` : ''}
+      <a href="${shareUrl}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="flex:1; text-decoration:none;">
+        ${iconShare()} <span>Share ride</span>
+      </a>
+    </div>
+  `;
+}
+
+// Inline SVG icons (kept in views.js to avoid touching ui.js)
+function iconPhone() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>`;
+}
+function iconWhatsApp() {
+  return `<svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+  </svg>`;
+}
+function iconMap() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+    <path d="M9 20 3 17V4l6 3 6-3 6 3v13l-6-3-6 3z"/>
+    <path d="M9 7v13"/>
+    <path d="M15 4v13"/>
+  </svg>`;
+}
+function iconShare() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <path d="m8.59 13.51 6.83 3.98"/>
+    <path d="m15.41 6.51-6.82 3.98"/>
+  </svg>`;
+}
+
+// Builds a Google Maps directions URL from an ordered list of [lat,lng] stops.
+// Max 10 stops supported by the URL scheme — our groups top out at ~8, so safe.
+function buildGoogleMapsUrl(stops, travelMode = 'driving') {
+  const valid = stops.filter(s =>
+    Array.isArray(s) && typeof s[0] === 'number' && typeof s[1] === 'number'
+  );
+  if (valid.length < 2) return null;
+  const origin = `${valid[0][0]},${valid[0][1]}`;
+  const destination = `${valid[valid.length - 1][0]},${valid[valid.length - 1][1]}`;
+  const waypoints = valid.slice(1, -1).map(s => `${s[0]},${s[1]}`).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${travelMode}`;
+  if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  return url;
+}
+
+// Builds a WhatsApp deep-link with a pre-filled text message.
+function buildWhatsAppUrl(phone, text) {
+  // Strip non-digits; assume Indian numbers are 10 digits and prefix 91.
+  const digits = (phone || '').replace(/\D/g, '');
+  const intl = digits.length === 10 ? '91' + digits : digits;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
+}
+
+// Builds a `tel:` link for the call button.
+function buildTelUrl(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  return digits ? `tel:+${digits.length === 10 ? '91' + digits : digits}` : null;
 }
 
 function actionButtons(ride, isDriver) {

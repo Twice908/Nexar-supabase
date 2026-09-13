@@ -17,6 +17,25 @@
 .btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Ride card icon actions */
+.passenger-row .icon-btn,
+.driver-chip .icon-btn {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.passenger-row .icon-btn:hover,
+.driver-chip .icon-btn:hover {
+  color: var(--text);
+  background: var(--bg-secondary);
+}
+.passenger-row .btn.icon-btn,
+.driver-chip .btn.icon-btn {
+  padding: 0;
+}
+.ride-actions a.btn {
+  text-decoration: none;
+}
+
 .btn svg {
   width: 18px;
   height: 18px;
