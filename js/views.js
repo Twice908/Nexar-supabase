@@ -273,7 +273,7 @@ function rideCard(ride, user, past) {
     </div>
   ` : '';
 
-  const passengerList = isDriver ? `
+    const passengerList = isDriver ? `
     <div class="passenger-list">
       <div class="meta" style="margin-bottom:8px">Passengers</div>
       ${(ride.pickupOrder && ride.pickupOrder.length > 0 ? ride.pickupOrder : ride.passengers).map((email, i) => {
@@ -282,20 +282,38 @@ function rideCard(ride, user, past) {
         const name = p?.name || g?.name || email;
         const walk = g && typeof g.walkMin === 'number' ? g.walkMin : null;
         const km = g && typeof g.walkKm === 'number' ? g.walkKm : null;
+
+        const picked = (ride.pickedUp || []).includes(email);
         const dropped = (ride.droppedOff || []).includes(email);
-        const statusPill = dropped
-          ? `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`
-          : (ride.status === 'active'
-              ? `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`
-              : `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`);
-         const dropBtn = (ride.status === 'active' && !dropped)
-          ? `<button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px; margin-left:auto;" onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>`
-          : '';
+
+        let statusPill;
+        if (dropped) {
+          statusPill = `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`;
+        } else if (picked) {
+          statusPill = `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`;
+        } else if (ride.status === 'active') {
+          statusPill = `<span class="pill pill-warning" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`;
+        } else {
+          statusPill = `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Not started</span>`;
+        }
+
+        let actionBtn = '';
+        if (ride.status === 'active' && !picked) {
+          actionBtn = `<button class="btn btn-primary" style="width:auto; padding:4px 10px; font-size:12px;" onclick="app.markPickedUp('${ride.id}', '${email}', this)">Onboard</button>`;
+        } else if (ride.status === 'active' && picked && !dropped) {
+          actionBtn = `<button class="btn btn-outline" style="width:auto; padding:4px 10px; font-size:12px;" onclick="app.markDropped('${ride.id}', '${email}', this)">Dropped</button>`;
+        }
+
         const pPhone = p?.mobile;
         const contactBtns = pPhone ? `
           <a href="${buildTelUrl(pPhone)}" class="icon-btn" style="width:30px;height:30px;" title="Call passenger">${iconPhone()}</a>
           <a href="${buildWhatsAppUrl(pPhone, `Hi ${name}, about our Nexar ride on ${ride.date}.`)}" target="_blank" rel="noopener" class="icon-btn" style="width:30px;height:30px;" title="WhatsApp passenger">${iconWhatsApp()}</a>
         ` : '';
+
+        // Timestamp for dropoff if available
+        const ev = (ride.dropoffEvents || []).find(e => e.email === email);
+        const dropTimeLabel = ev && ev.at ? `<div class="passenger-walk">Dropped at ${new Date(ev.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>` : '';
+
         return `
           <div class="passenger-row">
             <div class="passenger-num">${i + 1}</div>
@@ -303,10 +321,11 @@ function rideCard(ride, user, past) {
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <div class="passenger-name">${escapeHtml(name)}</div>
                 ${statusPill}
-                ${dropBtn}
+                ${actionBtn}
                 <div style="margin-left:auto; display:flex; gap:4px;">${contactBtns}</div>
               </div>
               ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
+              ${dropTimeLabel}
             </div>
           </div>
         `;
@@ -315,7 +334,7 @@ function rideCard(ride, user, past) {
   ` : '';
 
     // Passenger's view: list co-passengers + status
-  const coPassengerList = (!isDriver && (ride.passengers || []).length > 0) ? `
+    const coPassengerList = (!isDriver && (ride.passengers || []).length > 0) ? `
     <div class="passenger-list">
       <div class="meta" style="margin-bottom:8px">Riders</div>
       ${(ride.pickupOrder && ride.pickupOrder.length > 0 ? ride.pickupOrder : ride.passengers).map((email, i) => {
@@ -323,12 +342,20 @@ function rideCard(ride, user, past) {
         const p = window.app.store.getUserByEmail(email);
         const name = p?.name || g?.name || email;
         const isMe = email === user.email;
+        const picked = (ride.pickedUp || []).includes(email);
         const dropped = (ride.droppedOff || []).includes(email);
-        const statusPill = dropped
-          ? `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`
-          : (ride.status === 'active'
-              ? `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`
-              : `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`);
+
+        let statusPill;
+        if (dropped) {
+          statusPill = `<span class="pill pill-success" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Dropped</span>`;
+        } else if (picked) {
+          statusPill = `<span class="pill pill-info" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>On board</span>`;
+        } else if (ride.status === 'active') {
+          statusPill = `<span class="pill pill-warning" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Waiting</span>`;
+        } else {
+          statusPill = `<span class="pill pill-neutral" style="font-size:10px; padding:2px 7px;"><span class="dot"></span>Not started</span>`;
+        }
+
         return `
           <div class="passenger-row">
             <div class="passenger-num">${i + 1}</div>

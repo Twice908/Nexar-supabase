@@ -33,7 +33,7 @@ class App {
       'handleLogin','showOnboarding','showLogin','handleOnboarding','handleFinishProfile','logout',
       'switchTab','cancelAsDriver','cancelAsPassenger','refresh','startRide','completeRide',
       'toggleNotifications','markAllNotificationsRead','openNotification','refreshBellBadge',
-      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave', 'markDropped'
+      'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped'
     ];
     methods.forEach((m) => {
       this[m] = this[m].bind(this);
@@ -542,12 +542,46 @@ class App {
     }
   }
 
-    async markDropped(rideId, passengerEmail, btn) {
-    if (!confirm('Mark this passenger as dropped off?')) return;
+    async markPickedUp(rideId, passengerEmail, btn) {
     this.busy = true;
     this.setBtn(btn, '…');
     try {
-      await callMatchingEngine({ action: 'markDropped', rideId, passengerEmail });
+      await callMatchingEngine({ action: 'markPickedUp', rideId, passengerEmail });
+      await this.store.init();
+      await this.store.loadNotifications(this.currentUser.email);
+      this.switchTab('rides');
+    } catch (e) {
+      toast(e.message, 'error');
+      this.setBtn(btn, null);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  async markDropped(rideId, passengerEmail, btn) {
+    if (!confirm('Mark this passenger as dropped off?')) return;
+    this.busy = true;
+    this.setBtn(btn, '…');
+
+    // Try to capture current GPS. Timeout + silent fallback so a slow/blocked
+    // GPS doesn't hang the tap.
+    let lat = null, lng = null;
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject(new Error('no geolocation'));
+        const t = setTimeout(() => reject(new Error('timeout')), 4000);
+        navigator.geolocation.getCurrentPosition(
+          (p) => { clearTimeout(t); resolve(p); },
+          (e) => { clearTimeout(t); reject(e); },
+          { enableHighAccuracy: true, timeout: 4000, maximumAge: 30000 }
+        );
+      });
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch { /* proceed without coords */ }
+
+    try {
+      await callMatchingEngine({ action: 'markDropped', rideId, passengerEmail, lat, lng });
       await this.store.init();
       await this.store.loadNotifications(this.currentUser.email);
       this.switchTab('rides');
