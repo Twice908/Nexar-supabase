@@ -137,6 +137,8 @@ export function rideFromDb(row) {
     pickedUp: row.picked_up || [],
     droppedOff: row.dropped_off || [],
     dropoffEvents: row.dropoff_events || [],
+    currentPosition: row.current_position || null,
+    positionHistory: row.position_history || [],
     cancellationReason: row.cancellation_reason,
     startedAt: row.started_at, completedAt: row.completed_at, cancelledAt: row.cancelled_at,
     date: row.date, createdAt: row.created_at

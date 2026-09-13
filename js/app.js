@@ -479,6 +479,7 @@ class App {
 
   logout() {
     this.destroyRideMaps();
+    this.stopPositionWatcher();
     this.store.clearSession();
     setAuthToken(null);
     this.currentUser = null;
@@ -681,6 +682,63 @@ class App {
     }
   }
 
+    // ============ live position ============
+  startPositionWatcher() {
+    if (this._positionWatcher) return;
+    if (!navigator.geolocation) return;
+
+    const tick = async () => {
+      if (this.busy || this.currentView !== 'dashboard' || !this.currentUser) return;
+
+      const myActiveRide = this.store.getRides().find(r =>
+        r.driver === this.currentUser.email && r.status === 'active'
+      );
+      if (!myActiveRide) return;
+
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          const t = setTimeout(() => reject(new Error('timeout')), 5000);
+          navigator.geolocation.getCurrentPosition(
+            (p) => { clearTimeout(t); resolve(p); },
+            (e) => { clearTimeout(t); reject(e); },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+          );
+        });
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // Don't bother the server if we haven't moved meaningfully (> 20 m).
+        const last = myActiveRide.currentPosition;
+        if (last) {
+          const dLat = (lat - last.lat) * 111000;
+          const dLng = (lng - last.lng) * 111000 * Math.cos(lat * Math.PI / 180);
+          if (Math.hypot(dLat, dLng) < 20) return;
+        }
+
+        // Optimistically update local cache so the driver's own map moves instantly.
+        myActiveRide.currentPosition = { lat, lng, at: new Date().toISOString() };
+
+        await callMatchingEngine({
+          action: 'updatePosition',
+          rideId: myActiveRide.id,
+          driverEmail: this.currentUser.email,
+          lat, lng
+        });
+      } catch { /* skip this tick */ }
+    };
+
+    // Fire once immediately, then every 15 seconds.
+    tick();
+    this._positionWatcher = setInterval(tick, 15000);
+  }
+
+  stopPositionWatcher() {
+    if (this._positionWatcher) {
+      clearInterval(this._positionWatcher);
+      this._positionWatcher = null;
+    }
+  }
   // ============ notifications ============
   toggleNotifications() {
     this.openNotifications();
@@ -784,22 +842,29 @@ class App {
   }
 
   // ============ polling ============
-  startPolling() {
+    startPolling() {
     if (this._pollingHandle) return;
     this._pollingHandle = setInterval(() => this.pollTick(), 30000);
     if (this.currentUser?.email) initPush(this.currentUser.email);
-
+    this.startPositionWatcher();
   }
   async pollTick() {
     if (this.busy || this.currentView !== "dashboard" || !this.currentUser)
       return;
     try {
+      const prevHash = this._lastRidesHash;
       await this.store.init();
       await this.store.loadNotifications(this.currentUser.email);
       const user = this.store.getUserByEmail(this.currentUser.email);
       if (user) this.currentUser = user;
 
       const ridesHash = this.ridesHash();
+
+      // Was the only difference in the position bucket? If so, avoid a full
+      // re-render and just nudge the marker.
+      const stripPosition = (s) => s.replace(/:[^:|]*$/, '');
+      this._positionOnlyChange =
+        prevHash && stripPosition(prevHash) === stripPosition(ridesHash);
       const notifHash = this.notifHash();
 
       // Update bell badge in-place if only notifications changed.
@@ -810,8 +875,17 @@ class App {
 
       // Only touch the content DOM if the current tab's data actually changed.
       if (this.activeTab === "rides" && ridesHash !== this._lastRidesHash) {
+        // If ONLY the driver position changed, patch the map in-place rather
+        // than tearing down and re-mounting the whole card (which flickers).
+        const positionOnlyChanged = this._positionOnlyChange;
         this._lastRidesHash = ridesHash;
-        this.renderContentOnly();
+        if (positionOnlyChanged && this.activeTab === 'rides') {
+          this.store.getRides().forEach(r => {
+            if (r.status === 'active') this.refreshDriverMarker(r.id);
+          });
+        } else {
+          this.renderContentOnly();
+        }
       } else if (
         this.activeTab === "home" &&
         ridesHash !== this._lastRidesHash
@@ -827,13 +901,56 @@ class App {
     }
   }
 
+    // Cheap redraw of a single ride's driver marker. Called from pollTick when
+  // position changed but nothing else did.
+  refreshDriverMarker(rideId) {
+    const map = this.rideMaps.get(rideId);
+    if (!map) return;
+    const ride = this.store.getRides().find(r => r.id === rideId);
+    if (!ride || !ride.currentPosition) return;
+
+    const pos = [ride.currentPosition.lat, ride.currentPosition.lng];
+    if (this._driverMarkers?.get(rideId)) {
+      this._driverMarkers.get(rideId).setLatLng(pos);
+    } else {
+      if (!this._driverMarkers) this._driverMarkers = new Map();
+      const marker = L.circleMarker(pos, {
+        radius: 10,
+        color: '#fff',
+        weight: 3,
+        fillColor: '#2563eb',
+        fillOpacity: 1
+      }).addTo(map).bindPopup('<b>Nexar — live</b>');
+      this._driverMarkers.set(rideId, marker);
+    }
+
+    // Extend the drawn route with the live history.
+    const hist = (ride.positionHistory || []).map(p => [p.lat, p.lng]);
+    if (this._driverTracks?.get(rideId)) {
+      this._driverTracks.get(rideId).setLatLngs(hist);
+    } else {
+      if (!this._driverTracks) this._driverTracks = new Map();
+      const line = L.polyline(hist, {
+        color: '#2563eb',
+        weight: 3,
+        opacity: 0.9
+      }).addTo(map);
+      this._driverTracks.set(rideId, line);
+    }
+  }
+
   ridesHash() {
     return this.store
       .getRides()
-      .map(
-        (r) =>
-          `${r.id}:${r.status}:${(r.passengers || []).length}:${r.driver}:${r.startedAt || ""}:${r.completedAt || ""}:${r.cancelledAt || ""}`,
-      )
+      .map((r) => {
+        // Include a coarse position bucket so we re-render when the driver
+        // moves but not on every tiny GPS jitter.
+        const pos = r.currentPosition;
+        const posKey = pos
+          ? `${pos.lat.toFixed(3)}_${pos.lng.toFixed(3)}`
+          : '-';
+        return `${r.id}:${r.status}:${(r.passengers || []).length}:${r.driver}:${r.startedAt || ""}:${r.completedAt || ""}:${r.cancelledAt || ""}:${posKey}`;
+      })
       .sort()
       .join("|");
   }
@@ -892,6 +1009,8 @@ class App {
       } catch {}
     });
     this.rideMaps.clear();
+    this._driverMarkers?.clear();
+    this._driverTracks?.clear();
   }
 
   mountRideMaps() {
@@ -987,6 +1106,10 @@ class App {
         }).addTo(map);
         map.fitBounds(L.latLngBounds(pts).pad(0.25));
         this.rideMaps.set(ride.id, map);
+        // If there's a live driver position, drop the moving marker now.
+        if (ride.currentPosition && ride.status === 'active') {
+          this.refreshDriverMarker(ride.id);
+        }
       } catch (err) {
         console.error("Map init failed", err);
       }
