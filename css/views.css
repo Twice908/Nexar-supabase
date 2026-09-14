@@ -30,9 +30,16 @@
 .auth-logo {
   height: 32px;
   width: auto;
+  position: relative;
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
   margin-bottom: var(--s-10);
   position: relative;
 }
+.auth-intro { position: relative; }
 .auth-heading {
   font-size: 30px;
   font-weight: 700;
@@ -48,6 +55,34 @@
   position: relative;
 }
 .auth-form { position: relative; }
+.auth-submit { margin-top: var(--s-2); }
+.auth-back {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-6);
+  position: relative;
+}
+.auth-form-section {
+  padding: var(--s-5) 0 var(--s-2);
+  border-top: 1px solid var(--divider);
+}
+.auth-form-section:first-child { padding-top: 0; border-top: 0; }
+.auth-section-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: var(--track-snug);
+  margin-bottom: var(--s-4);
+}
+.profile-confirmed {
+  margin-bottom: var(--s-3);
+  position: relative;
+}
+.auth-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--s-3);
+}
 .auth-footer {
   margin-top: auto;
   padding-top: var(--s-6);
@@ -76,6 +111,8 @@
   color: var(--text-secondary);
   margin-bottom: var(--s-6);
 }
+.home-intro { margin-bottom: var(--s-5); }
+.home-section-header { padding-left: 0; }
 
 .hero-ride {
   padding: var(--s-5);
@@ -110,6 +147,18 @@
   line-height: 1;
   margin-bottom: var(--s-3);
 }
+.hero-ride-main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.hero-ride-main .hero-ride-time { margin-bottom: 0; }
+.hero-ride-direction {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
 .hero-ride-meta {
   font-size: 13px;
   color: var(--text-secondary);
@@ -118,6 +167,7 @@
   gap: var(--s-3);
   flex-wrap: wrap;
 }
+.hero-ride-empty .hero-ride-meta { max-width: 28ch; }
 
 .stat-grid {
   display: grid;
@@ -147,6 +197,12 @@
 }
 
 /* ——— Rides ——— */
+.rides-header {
+  padding: 0 0 var(--s-4);
+  margin-bottom: var(--s-2);
+}
+.rides-section .section-header { padding-left: 0; }
+.rides-section-past { margin-top: var(--s-8); }
 .ride-card {
   border-radius: var(--r-lg);
   background: var(--bg-elevated);
@@ -155,6 +211,7 @@
   margin-bottom: var(--s-4);
   transition: border-color var(--dur) var(--ease);
 }
+.ride-card.is-past { opacity: 0.82; }
 .ride-card:hover { border-color: var(--border-strong); }
 
 .ride-card-head {
@@ -305,6 +362,11 @@
   padding: var(--s-6) 0 var(--s-5);
   text-align: center;
 }
+.profile-section-header {
+  padding-left: 0;
+  margin-bottom: var(--s-2);
+}
+.profile-section { margin-bottom: var(--s-5); }
 .profile-avatar {
   width: 72px;
   height: 72px;
@@ -323,6 +385,15 @@
 .profile-email { font-size: 13.5px; color: var(--text-secondary); margin-top: 2px; }
 
 /* ——— Notification list ——— */
+.notifications-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--s-2);
+}
+.notification-list {
+  border-top: 1px solid var(--divider);
+}
+.notifications-empty { padding-top: var(--s-8); }
 .notif-item {
   display: flex;
   gap: var(--s-3);
@@ -361,6 +432,25 @@
   width: calc(100% - 32px);
   z-index: 50;
   animation: alert-slide var(--dur) var(--ease);
+}
+
+@media (max-width: 420px) {
+  .auth-field-grid { grid-template-columns: 1fr; }
+  .hero-ride-main { gap: var(--s-2); }
+  .hero-ride-direction { font-size: 13px; }
+}
+
+/* ——— Profile editor ——— */
+.modal-form-section {
+  padding: var(--s-5) 0 var(--s-2);
+  border-top: 1px solid var(--divider);
+}
+.modal-form-section:first-child { padding-top: 0; border-top: 0; }
+.modal-form-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: var(--track-snug);
+  margin-bottom: var(--s-4);
 }
 @keyframes alert-slide {
   from { opacity: 0; transform: translate(-50%, -12px); }

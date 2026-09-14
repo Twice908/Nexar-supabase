@@ -4,11 +4,15 @@ export function LoginView({ banner, prefillEmail } = {}) {
   const bannerHtml = banner ? `<div class="alert alert-warning">${escapeHtml(banner)}</div>` : '';
   const emailVal = prefillEmail ? `value="${escapeHtml(prefillEmail)}"` : '';
   return `
-    <div class="auth-screen">
-      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
-      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
-      <h1 class="auth-heading">Welcome back.</h1>
-      <p class="auth-sub">Sign in to find your Nexar for today's commute.</p>
+    <div class="auth-screen auth-screen-login">
+      <div class="auth-brand">
+        <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+        <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
+      </div>
+      <div class="auth-intro">
+        <h1 class="auth-heading">Welcome back.</h1>
+        <p class="auth-sub">Sign in to find your Nexar for today's commute.</p>
+      </div>
       ${bannerHtml}
       <div class="auth-form">
         <div class="field">
@@ -20,7 +24,7 @@ export function LoginView({ banner, prefillEmail } = {}) {
           <input class="field-input" type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
         </div>
         <div id="loginError"></div>
-        <button class="btn btn-primary btn-block" onclick="app.handleLogin()">Sign in</button>
+        <button class="btn btn-primary btn-block auth-submit" onclick="app.handleLogin()">Sign in</button>
       </div>
       <div class="auth-footer">
         New here? <button onclick="app.showOnboarding()">Create an account</button>
@@ -31,35 +35,52 @@ export function LoginView({ banner, prefillEmail } = {}) {
 
 export function OnboardingView() {
   return `
-    <div class="auth-screen">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom: var(--s-6);">
+    <div class="auth-screen auth-screen-form">
+      <div class="auth-back">
         <button class="icon-btn" onclick="app.showLogin()" aria-label="Back to sign in">
           ${icons.chevronLeft}
         </button>
         <span class="caption">Back to sign in</span>
       </div>
-      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
-      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
-      <h1 class="auth-heading">Create your account.</h1>
-      <p class="auth-sub">A few details so we can match you with the right Nexar.</p>
+      <div class="auth-brand">
+        <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+        <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
+      </div>
+      <div class="auth-intro">
+        <h1 class="auth-heading">Create your account.</h1>
+        <p class="auth-sub">A few details so we can match you with the right Nexar.</p>
+      </div>
       <form id="onboardingForm" class="auth-form">
-        <div class="field"><label class="field-label" for="name">Full name</label><input class="field-input" id="name" type="text" placeholder="Your name"></div>
-        <div class="field"><label class="field-label" for="email">Email</label><input class="field-input" id="email" type="email" placeholder="you@example.com"></div>
-        <div class="field"><label class="field-label" for="password">Password</label><input class="field-input" id="password" type="password" placeholder="At least 6 characters"></div>
-        <div class="field"><label class="field-label" for="mobile">Mobile number</label><input class="field-input" id="mobile" type="tel" placeholder="10 digits"></div>
-        <div class="field"><label class="field-label" for="homeZone">Home zone</label><input class="field-input" id="homeZone" type="text" placeholder="e.g., Andheri West, Mumbai"></div>
-        <div class="field"><label class="field-label" for="officeAddress">Office address</label><textarea class="field-textarea" id="officeAddress" placeholder="Street, area, city"></textarea></div>
-        <div class="field"><label class="field-label" for="officeEntryTime">Office entry time</label><input class="field-input" id="officeEntryTime" type="time" value="09:00"></div>
-        <div class="field"><label class="field-label" for="officeExitTime">Office exit time</label><input class="field-input" id="officeExitTime" type="time" value="18:00"></div>
-        <div class="field"><label class="field-label" for="carCompany">Car company</label><input class="field-input" id="carCompany" type="text" placeholder="e.g., Maruti Suzuki"></div>
-        <div class="field"><label class="field-label" for="carModel">Car model</label><input class="field-input" id="carModel" type="text" placeholder="e.g., Swift"></div>
-        <div class="field"><label class="field-label" for="carNumber">Car plate</label><input class="field-input" id="carNumber" type="text" placeholder="e.g., MH14KM1234" autocapitalize="characters"></div>
-        <div class="field">
-          <label class="field-label" for="vacantSeats">Vacant seats</label>
-          <select class="field-select" id="vacantSeats"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+        <div class="auth-form-section">
+          <div class="auth-section-title">About you</div>
+          <div class="field"><label class="field-label" for="name">Full name</label><input class="field-input" id="name" type="text" placeholder="Your name"></div>
+          <div class="field"><label class="field-label" for="email">Email</label><input class="field-input" id="email" type="email" placeholder="you@example.com"></div>
+          <div class="field"><label class="field-label" for="password">Password</label><input class="field-input" id="password" type="password" placeholder="At least 6 characters"></div>
+          <div class="field"><label class="field-label" for="mobile">Mobile number</label><input class="field-input" id="mobile" type="tel" placeholder="10 digits"></div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-section-title">Your commute</div>
+          <div class="field"><label class="field-label" for="homeZone">Home zone</label><input class="field-input" id="homeZone" type="text" placeholder="e.g., Andheri West, Mumbai"></div>
+          <div class="field"><label class="field-label" for="officeAddress">Office address</label><textarea class="field-textarea" id="officeAddress" placeholder="Street, area, city"></textarea></div>
+          <div class="auth-field-grid">
+            <div class="field"><label class="field-label" for="officeEntryTime">Office entry time</label><input class="field-input" id="officeEntryTime" type="time" value="09:00"></div>
+            <div class="field"><label class="field-label" for="officeExitTime">Office exit time</label><input class="field-input" id="officeExitTime" type="time" value="18:00"></div>
+          </div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-section-title">Your car</div>
+          <div class="auth-field-grid">
+            <div class="field"><label class="field-label" for="carCompany">Car company</label><input class="field-input" id="carCompany" type="text" placeholder="e.g., Maruti Suzuki"></div>
+            <div class="field"><label class="field-label" for="carModel">Car model</label><input class="field-input" id="carModel" type="text" placeholder="e.g., Swift"></div>
+          </div>
+          <div class="field"><label class="field-label" for="carNumber">Car plate</label><input class="field-input" id="carNumber" type="text" placeholder="e.g., MH14KM1234" autocapitalize="characters"></div>
+          <div class="field">
+            <label class="field-label" for="vacantSeats">Vacant seats</label>
+            <select class="field-select" id="vacantSeats"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+          </div>
         </div>
         <div id="onboardingError"></div>
-        <button type="submit" id="onboardBtn" class="btn btn-primary btn-block" style="margin-top:8px">Create account</button>
+        <button type="submit" id="onboardBtn" class="btn btn-primary btn-block auth-submit">Create account</button>
       </form>
       <div class="auth-footer">
         Already have an account? <button onclick="app.showLogin()">Sign in</button>
@@ -86,17 +107,19 @@ export function HomeView({ user, rides, notifications }) {
   const asPassenger = thisMonth.filter(r => r.passengers.includes(user.email)).length;
 
   const hero = nextRide ? `
-    <div class="hero-ride">
+    <div class="hero-ride hero-ride-scheduled">
       <div class="hero-ride-label">Today's ride</div>
-      <div class="hero-ride-time">${nextRide.pickupTime || '—'}</div>
+      <div class="hero-ride-main">
+        <div class="hero-ride-time">${nextRide.pickupTime || '—'}</div>
+        <div class="hero-ride-direction">${nextRide.tripType === 'morning' ? 'To office' : 'To home'}</div>
+      </div>
       <div class="hero-ride-meta">
         ${statusPill(nextRide.status)}
-        <span>${nextRide.tripType === 'morning' ? 'To office' : 'To home'}</span>
         <span>${nextRide.driver === user.email ? 'You drive' : 'You ride'}</span>
       </div>
     </div>
   ` : `
-    <div class="hero-ride">
+    <div class="hero-ride hero-ride-empty">
       <div class="hero-ride-label">Today</div>
       <div class="hero-ride-time" style="font-size:20px; font-weight:600;">No ride today</div>
       <div class="hero-ride-meta"><span>Rides are matched at 7 PM for the next morning.</span></div>
@@ -104,18 +127,18 @@ export function HomeView({ user, rides, notifications }) {
   `;
 
   return `
-    <div class="section">
+    <div class="section home-intro">
       <div class="greeting">${greeting}, ${escapeHtml(firstName)}.</div>
       <div class="greeting-sub">Here's what's happening.</div>
     </div>
     ${hero}
-    <div class="stat-grid">
+    <div class="stat-grid home-stats">
       <div class="stat"><div class="stat-value">${asDriver}</div><div class="stat-label">As Nexar</div></div>
       <div class="stat"><div class="stat-value">${asPassenger}</div><div class="stat-label">As Nexirian</div></div>
       <div class="stat"><div class="stat-value">${thisMonth.length}</div><div class="stat-label">Total rides</div></div>
     </div>
     <div class="section">
-      <div class="section-header"><span class="meta">Your details</span></div>
+      <div class="section-header home-section-header"><span class="h3">Your details</span></div>
       <div class="card-list">
         ${rowSimple(icons.pin, 'Home zone', user.homeZone)}
         ${rowSimple(icons.pin, 'Office', user.officeAddress)}
@@ -132,41 +155,60 @@ export function FinishProfileView({ pending, email }) {
   const selectedSeat = p.vacantSeats || 3;
 
   return `
-    <div class="auth-screen">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom: var(--s-6);">
+    <div class="auth-screen auth-screen-form">
+      <div class="auth-back">
         <button class="icon-btn" onclick="app.logout()" aria-label="Sign out">
           ${icons.chevronLeft}
         </button>
         <span class="caption">Sign out</span>
       </div>
 
-      <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
-      <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
+      <div class="auth-brand">
+        <img class="auth-logo logo-light-theme" src="assets/logo-long-dark.svg" alt="Nexar">
+        <img class="auth-logo logo-dark-theme"  src="assets/logo-long-white.svg" alt="Nexar">
+      </div>
 
-      <div style="margin-bottom: 10px;">
+      <div class="profile-confirmed">
         <span class="pill pill-success"><span class="dot"></span>Email confirmed</span>
       </div>
-      <h1 class="auth-heading">Finish your profile.</h1>
-      <p class="auth-sub">Signed in as <strong>${escapeHtml(email)}</strong>. A few details so we can match you with rides.</p>
+      <div class="auth-intro">
+        <h1 class="auth-heading">Finish your profile.</h1>
+        <p class="auth-sub">Signed in as <strong>${escapeHtml(email)}</strong>. A few details so we can match you with rides.</p>
+      </div>
 
       <form id="finishProfileForm" class="auth-form">
-        <div class="field"><label class="field-label" for="fpName">Full name</label><input class="field-input" id="fpName" type="text" value="${v('name')}" placeholder="Your name"></div>
-        <div class="field"><label class="field-label" for="fpMobile">Mobile number</label><input class="field-input" id="fpMobile" type="tel" value="${v('mobile')}" placeholder="10 digits"></div>
-        <div class="field"><label class="field-label" for="fpHomeZone">Home zone</label><input class="field-input" id="fpHomeZone" type="text" value="${v('homeZone')}" placeholder="e.g., Andheri West, Mumbai"></div>
-        <div class="field"><label class="field-label" for="fpOfficeAddress">Office address</label><textarea class="field-textarea" id="fpOfficeAddress" placeholder="Street, area, city">${v('officeAddress')}</textarea></div>
-        <div class="field"><label class="field-label" for="fpOfficeEntryTime">Office entry time</label><input class="field-input" id="fpOfficeEntryTime" type="time" value="${v('officeEntryTime', '09:00')}"></div>
-        <div class="field"><label class="field-label" for="fpOfficeExitTime">Office exit time</label><input class="field-input" id="fpOfficeExitTime" type="time" value="${v('officeExitTime', '18:00')}"></div>
-        <div class="field"><label class="field-label" for="fpCarCompany">Car company</label><input class="field-input" id="fpCarCompany" type="text" value="${v('carCompany')}" placeholder="e.g., Maruti Suzuki"></div>
-        <div class="field"><label class="field-label" for="fpCarModel">Car model</label><input class="field-input" id="fpCarModel" type="text" value="${v('carModel')}" placeholder="e.g., Swift"></div>
-        <div class="field"><label class="field-label" for="fpCarNumber">Car plate</label><input class="field-input" id="fpCarNumber" type="text" value="${v('carNumber')}" placeholder="e.g., MH14KM1234" autocapitalize="characters"></div>
-        <div class="field">
-          <label class="field-label" for="fpVacantSeats">Vacant seats</label>
-          <select class="field-select" id="fpVacantSeats">
-            ${[2,3,4].map(n => `<option value="${n}" ${selectedSeat === n ? 'selected' : ''}>${n}</option>`).join('')}
-          </select>
+        <div class="auth-form-section">
+          <div class="auth-section-title">About you</div>
+          <div class="auth-field-grid">
+            <div class="field"><label class="field-label" for="fpName">Full name</label><input class="field-input" id="fpName" type="text" value="${v('name')}" placeholder="Your name"></div>
+            <div class="field"><label class="field-label" for="fpMobile">Mobile number</label><input class="field-input" id="fpMobile" type="tel" value="${v('mobile')}" placeholder="10 digits"></div>
+          </div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-section-title">Your commute</div>
+          <div class="field"><label class="field-label" for="fpHomeZone">Home zone</label><input class="field-input" id="fpHomeZone" type="text" value="${v('homeZone')}" placeholder="e.g., Andheri West, Mumbai"></div>
+          <div class="field"><label class="field-label" for="fpOfficeAddress">Office address</label><textarea class="field-textarea" id="fpOfficeAddress" placeholder="Street, area, city">${v('officeAddress')}</textarea></div>
+          <div class="auth-field-grid">
+            <div class="field"><label class="field-label" for="fpOfficeEntryTime">Office entry time</label><input class="field-input" id="fpOfficeEntryTime" type="time" value="${v('officeEntryTime', '09:00')}"></div>
+            <div class="field"><label class="field-label" for="fpOfficeExitTime">Office exit time</label><input class="field-input" id="fpOfficeExitTime" type="time" value="${v('officeExitTime', '18:00')}"></div>
+          </div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-section-title">Your car</div>
+          <div class="auth-field-grid">
+            <div class="field"><label class="field-label" for="fpCarCompany">Car company</label><input class="field-input" id="fpCarCompany" type="text" value="${v('carCompany')}" placeholder="e.g., Maruti Suzuki"></div>
+            <div class="field"><label class="field-label" for="fpCarModel">Car model</label><input class="field-input" id="fpCarModel" type="text" value="${v('carModel')}" placeholder="e.g., Swift"></div>
+          </div>
+          <div class="field"><label class="field-label" for="fpCarNumber">Car plate</label><input class="field-input" id="fpCarNumber" type="text" value="${v('carNumber')}" placeholder="e.g., MH14KM1234" autocapitalize="characters"></div>
+          <div class="field">
+            <label class="field-label" for="fpVacantSeats">Vacant seats</label>
+            <select class="field-select" id="fpVacantSeats">
+              ${[2,3,4].map(n => `<option value="${n}" ${selectedSeat === n ? 'selected' : ''}>${n}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div id="finishProfileError"></div>
-        <button type="submit" id="finishProfileBtn" class="btn btn-primary btn-block" style="margin-top:8px">Save profile</button>
+        <button type="submit" id="finishProfileBtn" class="btn btn-primary btn-block auth-submit">Save profile</button>
       </form>
     </div>
   `;
@@ -181,13 +223,13 @@ export function RidesView({ user, rides }) {
     .sort((a, b) => (b.date + b.tripType).localeCompare(a.date + a.tripType));
 
   return `
-    <div class="section-header" style="padding:0 4px 12px">
+    <div class="section-header rides-header">
       <span class="h2">Rides</span>
       <button class="icon-btn" onclick="app.refresh(this)" aria-label="Refresh">${icons.clock}</button>
     </div>
     <div id="rideError"></div>
 
-    <div class="section">
+    <div class="section rides-section">
       <div class="section-header"><span class="meta">Upcoming</span></div>
       ${upcoming.length === 0
         ? emptyState('No upcoming rides', 'Rides are matched at 7 PM for the next morning.')
@@ -195,7 +237,7 @@ export function RidesView({ user, rides }) {
     </div>
 
     ${past.length > 0 ? `
-      <div class="section">
+      <div class="section rides-section rides-section-past">
         <div class="section-header"><span class="meta">Past</span></div>
         ${past.slice(0, 10).map(r => rideCard(r, user, true)).join('')}
       </div>
@@ -388,7 +430,7 @@ function rideCard(ride, user, past) {
   const mapId = past ? '' : `ride-map-${ride.id}`;
 
   return `
-    <div class="ride-card">
+    <div class="ride-card ${past ? 'is-past' : ''}">
       <div class="ride-card-head">
         <div>
           <div class="ride-card-title">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
@@ -603,13 +645,14 @@ export function ProfileView({ user }) {
   const t = document.documentElement.getAttribute('data-theme');
   const isDark = t === 'dark';
   return `
-    <div class="profile-header">
+    <div class="profile-header profile-summary">
       <div class="profile-avatar">${initials(user.name)}</div>
       <div class="profile-name">${escapeHtml(user.name)}</div>
       <div class="profile-email">${escapeHtml(user.email)}</div>
     </div>
 
-    <div class="section">
+    <div class="section profile-section">
+      <div class="section-header profile-section-header"><span class="meta">Account</span></div>
       <div class="card-list">
         <button class="card-row" onclick="app.openEditProfile()">
           <div class="card-row-left">
@@ -634,7 +677,8 @@ export function ProfileView({ user }) {
       </div>
     </div>
 
-    <div class="section">
+    <div class="section profile-section">
+      <div class="section-header profile-section-header"><span class="meta">Preferences</span></div>
       <div class="card-list">
         <div class="card-row" style="cursor:default">
           <div class="card-row-left">
@@ -651,7 +695,8 @@ export function ProfileView({ user }) {
       </div>
     </div>
 
-    <div class="section">
+    <div class="section profile-section">
+      <div class="section-header profile-section-header"><span class="meta">Session</span></div>
       <div class="card-list">
         <button class="card-row" onclick="app.logout()">
           <div class="card-row-left">
@@ -666,17 +711,18 @@ export function ProfileView({ user }) {
 
 export function NotificationsSheet(notifications) {
   if (!notifications.length) {
-    return `<div class="empty">
+    return `<div class="empty notifications-empty">
       <div class="empty-mark"></div>
       <div class="empty-title">No notifications yet</div>
       <div class="empty-sub">Ride updates will appear here.</div>
     </div>`;
   }
   return `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <div class="notifications-toolbar">
       <button class="btn btn-ghost btn-sm" onclick="app.markAllNotificationsRead()">Mark all read</button>
     </div>
-    ${notifications.map(n => `
+    <div class="notification-list">
+      ${notifications.map(n => `
       <button class="notif-item ${n.read ? '' : 'is-unread'}" onclick="app.openNotification('${n.id}','${n.rideId || ''}')">
         <span class="notif-dot ${n.read ? 'is-read' : ''}"></span>
         <div class="notif-body">
@@ -685,31 +731,45 @@ export function NotificationsSheet(notifications) {
           <div class="notif-time">${timeAgo(n.createdAt)}</div>
         </div>
       </button>
-    `).join('')}
+      `).join('')}
+    </div>
   `;
 }
 
 export function EditProfileModal(user) {
   return `
     <form id="editProfileForm">
-      <div class="field"><label class="field-label" for="editName">Full name</label><input class="field-input" id="editName" value="${escapeHtml(user.name)}"></div>
-      <div class="field"><label class="field-label" for="editEmail">Email</label><input class="field-input" id="editEmail" value="${escapeHtml(user.email)}" readonly></div>
-      <div class="field"><label class="field-label" for="editMobile">Mobile</label><input class="field-input" id="editMobile" value="${escapeHtml(user.mobile)}"></div>
-      <div class="field"><label class="field-label" for="editHomeZone">Home zone</label><input class="field-input" id="editHomeZone" value="${escapeHtml(user.homeZone)}"></div>
-      <div class="field"><label class="field-label" for="editOfficeAddress">Office address</label><textarea class="field-textarea" id="editOfficeAddress">${escapeHtml(user.officeAddress)}</textarea></div>
-      <div class="field"><label class="field-label" for="editOfficeEntryTime">Office entry</label><input class="field-input" id="editOfficeEntryTime" type="time" value="${user.officeEntryTime}"></div>
-      <div class="field"><label class="field-label" for="editOfficeExitTime">Office exit</label><input class="field-input" id="editOfficeExitTime" type="time" value="${user.officeExitTime}"></div>
-      <div class="field"><label class="field-label" for="editCarCompany">Car company</label><input class="field-input" id="editCarCompany" value="${escapeHtml(user.carCompany)}"></div>
-      <div class="field"><label class="field-label" for="editCarModel">Car model</label><input class="field-input" id="editCarModel" value="${escapeHtml(user.carModel)}"></div>
-      <div class="field"><label class="field-label" for="editCarNumber">Car plate</label><input class="field-input" id="editCarNumber" value="${escapeHtml(user.carNumber)}"></div>
-      <div class="field">
-        <label class="field-label" for="editVacantSeats">Vacant seats</label>
-        <select class="field-select" id="editVacantSeats">
-          ${[2,3,4].map(n => `<option value="${n}" ${user.vacantSeats===n?'selected':''}>${n}</option>`).join('')}
-        </select>
+      <div class="modal-form-section">
+        <div class="modal-form-title">About you</div>
+        <div class="field"><label class="field-label" for="editName">Full name</label><input class="field-input" id="editName" value="${escapeHtml(user.name)}"></div>
+        <div class="field"><label class="field-label" for="editEmail">Email</label><input class="field-input" id="editEmail" value="${escapeHtml(user.email)}" readonly></div>
+        <div class="field"><label class="field-label" for="editMobile">Mobile</label><input class="field-input" id="editMobile" value="${escapeHtml(user.mobile)}"></div>
+      </div>
+      <div class="modal-form-section">
+        <div class="modal-form-title">Your commute</div>
+        <div class="field"><label class="field-label" for="editHomeZone">Home zone</label><input class="field-input" id="editHomeZone" value="${escapeHtml(user.homeZone)}"></div>
+        <div class="field"><label class="field-label" for="editOfficeAddress">Office address</label><textarea class="field-textarea" id="editOfficeAddress">${escapeHtml(user.officeAddress)}</textarea></div>
+        <div class="auth-field-grid">
+          <div class="field"><label class="field-label" for="editOfficeEntryTime">Office entry</label><input class="field-input" id="editOfficeEntryTime" type="time" value="${user.officeEntryTime}"></div>
+          <div class="field"><label class="field-label" for="editOfficeExitTime">Office exit</label><input class="field-input" id="editOfficeExitTime" type="time" value="${user.officeExitTime}"></div>
+        </div>
+      </div>
+      <div class="modal-form-section">
+        <div class="modal-form-title">Your car</div>
+        <div class="auth-field-grid">
+          <div class="field"><label class="field-label" for="editCarCompany">Car company</label><input class="field-input" id="editCarCompany" value="${escapeHtml(user.carCompany)}"></div>
+          <div class="field"><label class="field-label" for="editCarModel">Car model</label><input class="field-input" id="editCarModel" value="${escapeHtml(user.carModel)}"></div>
+        </div>
+        <div class="field"><label class="field-label" for="editCarNumber">Car plate</label><input class="field-input" id="editCarNumber" value="${escapeHtml(user.carNumber)}"></div>
+        <div class="field">
+          <label class="field-label" for="editVacantSeats">Vacant seats</label>
+          <select class="field-select" id="editVacantSeats">
+            ${[2,3,4].map(n => `<option value="${n}" ${user.vacantSeats===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
       </div>
       <div id="editProfileError"></div>
-      <button type="submit" id="editProfileBtn" class="btn btn-primary btn-block" style="margin-top:8px">Save changes</button>
+      <button type="submit" id="editProfileBtn" class="btn btn-primary btn-block auth-submit">Save changes</button>
     </form>
   `;
 }
