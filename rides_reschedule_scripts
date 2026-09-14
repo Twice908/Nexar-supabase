@@ -1,0 +1,8 @@
+-- Reschedule today's morning rides
+select reschedule_rides('morning');
+
+-- Reschedule today's evening rides
+select reschedule_rides('evening');
+
+-- Reschedule a specific date
+select reschedule_rides('morning', '2026-09-20'::date);
