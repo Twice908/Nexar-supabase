@@ -505,7 +505,7 @@ function buildDriverChip(ride, user, driverUser, state) {
   });
 
   return `
-    <div class="driver-chip ride-contact-card" ${state.chipDimmed ? 'style="opacity:0.72;"' : ''}>
+    <div class="driver-chip ride-contact-card">
       <div class="driver-chip-avatar">${(driverUser.name || '?').trim()[0].toUpperCase()}</div>
       <div class="driver-chip-body">
         <div class="driver-chip-name">${escapeHtml(driverUser.name || 'Nexar')}</div>
