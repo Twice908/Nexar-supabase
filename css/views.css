@@ -770,3 +770,10 @@
   font-weight: 500;
   color: var(--text-tertiary);
 }
+
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu,
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu .passenger-actions-trigger,
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu .passenger-actions-panel {
+  opacity: 1 !important;
+  filter: none !important;
+}
