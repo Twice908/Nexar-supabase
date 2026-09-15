@@ -24,6 +24,7 @@ class App {
     // expose public handlers globally for onclick
     window.app = this;
     this.bind();
+    this.installActionsMenuAutoClose();
     this.start();
   }
 
@@ -39,6 +40,25 @@ class App {
     methods.forEach((m) => {
       this[m] = this[m].bind(this);
     });
+  }
+    // Closes any open <details class="passenger-actions-menu"> when the user
+  // clicks/taps outside of it. Uses capture phase so it runs before any
+  // inline onclick handlers that might otherwise stop the event.
+  installActionsMenuAutoClose() {
+    const closeAll = (except) => {
+      document.querySelectorAll('details.passenger-actions-menu[open]').forEach(d => {
+        if (d !== except) d.removeAttribute('open');
+      });
+    };
+
+    document.addEventListener('click', (e) => {
+      const openMenu = e.target.closest('details.passenger-actions-menu');
+      closeAll(openMenu);
+    }, true);
+
+    // Also close on scroll — otherwise a scrolled page leaves the popover
+    // floating in the wrong place on mobile.
+    window.addEventListener('scroll', () => closeAll(null), true);
   }
 
   // ============ router ============
