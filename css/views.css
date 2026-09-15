@@ -460,7 +460,19 @@
   background: var(--primary-hover);
   border-color: var(--primary-hover);
 }
+.driver-chip-rating {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
 
+/* Driver chip now hosts an Actions menu like passengers do */
+.driver-chip .passenger-actions-menu {
+  margin-left: auto;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 3;
+}
 /* Keep disabled buttons visibly dimmer than the primary */
 .passenger-action-btn[disabled] {
   opacity: 0.35;
@@ -646,4 +658,53 @@
 @keyframes alert-slide {
   from { opacity: 0; transform: translate(-50%, -12px); }
   to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ——— Ride card state tiers ——— */
+
+/* State 1: Active — accent border + full strength */
+.ride-card.ride-card-active {
+  border-color: var(--text);
+  border-left-width: 3px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+/* State 2: Recently completed (within 3h) — full card, dimmed chips */
+.ride-card.ride-card-recent .driver-chip,
+.ride-card.ride-card-recent .passenger-row {
+  opacity: 0.72;
+  filter: saturate(0.85);
+}
+
+/* State 3: Dormant (3h+, past, cancelled) — whole card faded */
+.ride-card.is-dormant {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+.ride-card.is-dormant:hover {
+  opacity: 0.75;
+  border-color: var(--border-strong);
+}
+
+/* Chip becomes a read-only rating badge after the menu is gone */
+.driver-chip-rating-readonly {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border: 1px solid var(--divider);
+  border-radius: var(--r-full);
+  background: var(--bg-secondary);
+}
+.driver-chip-rating-readonly .star-glyph {
+  color: var(--warning-fg);
+  font-size: 14px;
+}
+.driver-chip-rating-readonly.empty {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--text-tertiary);
 }
