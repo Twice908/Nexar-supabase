@@ -737,6 +737,17 @@
   filter: none;
 }
 
+/* The driver chip carries its own dim styling via ride-contact-card; make
+   sure the Actions menu trigger also reads at full strength when open. */
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open],
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open] .passenger-actions-trigger,
+.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open] .passenger-actions-panel,
+.ride-card.ride-card-recent .passenger-row .passenger-actions-menu[open] .passenger-actions-trigger,
+.ride-card.ride-card-recent .passenger-row .passenger-actions-menu[open] .passenger-actions-panel {
+  opacity: 1;
+  filter: none;
+}
+
 /* State 3: Dormant (3h+, past, cancelled) — whole card faded */
 .ride-card.is-dormant {
   opacity: 0.55;
