@@ -722,30 +722,20 @@
 }
 
 /* State 2: Recently completed (within 3h) — full card, dimmed chips */
-.ride-card.ride-card-recent .driver-chip,
-.ride-card.ride-card-recent .passenger-row {
+/* Dim only the chip contents, never the container, so the Actions menu
+   (which is positioned as a child of the chip) never inherits the fade. */
+.ride-card.ride-card-recent .driver-chip > .driver-chip-avatar,
+.ride-card.ride-card-recent .driver-chip > .driver-chip-body {
   opacity: 0.72;
   filter: saturate(0.85);
 }
 
-/* When the Actions panel is open inside a dimmed chip/row, lift it back to
-   full opacity so the menu reads clearly. Both the chip and the row carry
-   their own dimming, so we override at both levels. */
-.ride-card.ride-card-recent .driver-chip:has(.passenger-actions-menu[open]),
-.ride-card.ride-card-recent .passenger-row:has(.passenger-actions-menu[open]) {
-  opacity: 1;
-  filter: none;
-}
-
-/* The driver chip carries its own dim styling via ride-contact-card; make
-   sure the Actions menu trigger also reads at full strength when open. */
-.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open],
-.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open] .passenger-actions-trigger,
-.ride-card.ride-card-recent .driver-chip .passenger-actions-menu[open] .passenger-actions-panel,
-.ride-card.ride-card-recent .passenger-row .passenger-actions-menu[open] .passenger-actions-trigger,
-.ride-card.ride-card-recent .passenger-row .passenger-actions-menu[open] .passenger-actions-panel {
-  opacity: 1;
-  filter: none;
+.ride-card.ride-card-recent .passenger-row .passenger-num,
+.ride-card.ride-card-recent .passenger-row .passenger-name,
+.ride-card.ride-card-recent .passenger-row .passenger-walk,
+.ride-card.ride-card-recent .passenger-row .pill {
+  opacity: 0.72;
+  filter: saturate(0.85);
 }
 
 /* State 3: Dormant (3h+, past, cancelled) — whole card faded */
