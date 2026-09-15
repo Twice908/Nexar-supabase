@@ -728,6 +728,15 @@
   filter: saturate(0.85);
 }
 
+/* When the Actions panel is open inside a dimmed chip/row, lift it back to
+   full opacity so the menu reads clearly. Both the chip and the row carry
+   their own dimming, so we override at both levels. */
+.ride-card.ride-card-recent .driver-chip:has(.passenger-actions-menu[open]),
+.ride-card.ride-card-recent .passenger-row:has(.passenger-actions-menu[open]) {
+  opacity: 1;
+  filter: none;
+}
+
 /* State 3: Dormant (3h+, past, cancelled) — whole card faded */
 .ride-card.is-dormant {
   opacity: 0.55;
