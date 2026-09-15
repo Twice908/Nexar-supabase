@@ -216,16 +216,16 @@ export function FinishProfileView({ pending, email }) {
 
 // ——— Ride priority for sorting ———
 function ridePriority(status) {
-  // Lower number = sorted earlier
   switch (status) {
     case 'active':
     case 'started':  return 1;
     case 'matched':  return 2;
     case 'matching': return 3;
-    case 'completed':return 4;
-    case 'cancelled':return 5;
-    case 'no match': return 6;
-    default:         return 7;
+    case 'missed':   return 4;
+    case 'completed':return 5;
+    case 'cancelled':return 6;
+    case 'no match': return 7;
+    default:         return 8;
   }
 }
 
@@ -301,8 +301,31 @@ function rideVisualState(ride, past) {
   };
 }
 
+// Returns 'missed' when a 'matched' ride is more than 30 min past its pickup
+// time on its scheduled date. Otherwise returns the ride's actual status.
+function computeEffectiveStatus(ride) {
+  if (ride.status !== 'matched') return ride.status;
+  if (!ride.date || !ride.pickupTime) return ride.status;
+
+  // Build a Date for the pickup time in IST.
+  // 09:00 IST on 2026-09-15 == 03:30 UTC on 2026-09-15.
+  const [h, m] = ride.pickupTime.split(':').map(Number);
+  const [Y, Mo, D] = ride.date.split('-').map(Number);
+  // Construct in UTC then offset by +5:30 for IST.
+  const pickupUtcMs = Date.UTC(Y, Mo - 1, D, h, m, 0);
+  const pickupIstMs = pickupUtcMs - (5 * 60 + 30) * 60 * 1000;
+  const deadlineMs = pickupIstMs + 30 * 60 * 1000;
+
+  return Date.now() > deadlineMs ? 'missed' : ride.status;
+}
+
 function rideCard(ride, user, past) {
   const isDriver = ride.driver === user.email;
+
+  const effectiveStatus = computeEffectiveStatus(ride);
+  if (effectiveStatus !== ride.status) {
+    ride = { ...ride, status: effectiveStatus };
+  }
 
   if (ride.status === 'no match') {
     return `
@@ -337,6 +360,22 @@ function rideCard(ride, user, past) {
     `;
   }
 
+    if (ride.status === 'missed') {
+    return `
+      <div class="ride-card is-dormant">
+        <div class="ride-card-head">
+          <div>
+            <div class="ride-card-title">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
+            <div class="ride-card-date">${formatDate(ride.date)} · ${isDriver ? 'You drive' : 'You ride'}</div>
+          </div>
+          <span class="pill pill-warning"><span class="dot"></span>Missed</span>
+        </div>
+        <div class="ride-card-body">
+          <p class="caption">This ride was scheduled at ${ride.pickupTime || '—'} but was never started. Contact your Nexar group to sort out your commute.</p>
+        </div>
+      </div>
+    `;
+  }
   const state = rideVisualState(ride, past);
 
   const timelineItems = [];
@@ -878,6 +917,7 @@ function statusPill(status) {
     active: ['pill-success', 'In progress'],
     completed: ['pill-neutral', 'Completed'],
     cancelled: ['pill-danger', 'Cancelled'],
+    missed: ['pill-warning', 'Missed'],
     'no match': ['pill-neutral', 'No match'],
   };
   const [cls, label] = map[status] || ['pill-neutral', status];
