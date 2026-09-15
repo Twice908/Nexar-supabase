@@ -35,6 +35,7 @@ class App {
       'switchTab','cancelAsDriver','cancelAsPassenger','refresh','startRide','completeRide',
       'toggleNotifications','markAllNotificationsRead','openNotification','refreshBellBadge',
       'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped',
+      'openCancelSheet','pickCancelReason','confirmCancelSheet','closeCancelSheet',
       'pickStars', 'submitRating'
     ];
     methods.forEach((m) => {
@@ -567,47 +568,129 @@ class App {
     }
   }
 
-  async cancelAsDriver(rideId, btn) {
-    if (
-      !confirm(
-        "Cancel this ride? Your passengers will be notified and we'll try to re-match them.",
-      )
-    )
-      return;
+    // ============ cancellation with reason ============
+  openCancelSheet(rideId, role) {
+    // role: 'driver' | 'passenger'
+    const reasons = role === 'driver'
+      ? [
+          ['cant_drive', "Can't drive today"],
+          ['car_issue', 'Car issue'],
+          ['running_late', 'Running late'],
+          ['emergency', 'Personal emergency'],
+          ['other', 'Other'],
+        ]
+      : [
+          ['plans_changed', 'Plans changed'],
+          ['wfh', 'Working from home'],
+          ['alternate_transport', 'Found alternate transport'],
+          ['running_late', 'Running late'],
+          ['other', 'Other'],
+        ];
+
+    const html = `
+      <div id="cancelSheet" class="cancel-sheet">
+        <p class="cancel-sheet-hint">Help us understand why you're cancelling.</p>
+        <div class="cancel-reason-list">
+          ${reasons.map(([id, label]) => `
+            <button class="cancel-reason-btn" data-reason-id="${id}"
+              onclick="app.pickCancelReason('${id}')">${escapeHtml(label)}</button>
+          `).join('')}
+        </div>
+        <div id="cancelCustomWrap" class="cancel-custom" style="display:none;">
+          <textarea id="cancelCustomText" class="field-textarea" rows="2" maxlength="200" placeholder="Tell us more (optional)"></textarea>
+        </div>
+        <div id="cancelSheetError" class="error"></div>
+        <div class="cancel-sheet-actions">
+          <button class="btn btn-secondary btn-sm" onclick="app.closeCancelSheet()">Keep ride</button>
+          <button class="btn btn-danger btn-sm" id="cancelConfirmBtn" disabled
+            onclick="app.confirmCancelSheet('${rideId}', '${role}')">Confirm cancel</button>
+        </div>
+      </div>
+    `;
+
+    const { close } = openSheet({ title: 'Cancel ride', content: html });
+    this._cancelSheetClose = close;
+    this._cancelSheetState = { reasonId: null, role };
+  }
+
+  pickCancelReason(reasonId) {
+    if (!this._cancelSheetState) return;
+    this._cancelSheetState.reasonId = reasonId;
+
+    document.querySelectorAll('.cancel-reason-btn').forEach(b => {
+      const isThis = b.dataset.reasonId === reasonId;
+      b.classList.toggle('is-picked', isThis);
+    });
+
+    const customWrap = document.getElementById('cancelCustomWrap');
+    if (customWrap) {
+      customWrap.style.display = (reasonId === 'other') ? 'block' : 'none';
+    }
+
+    const confirmBtn = document.getElementById('cancelConfirmBtn');
+    if (confirmBtn) confirmBtn.disabled = false;
+  }
+
+  closeCancelSheet() {
+    if (this._cancelSheetClose) {
+      this._cancelSheetClose();
+      this._cancelSheetClose = null;
+    }
+    this._cancelSheetState = null;
+  }
+
+  async confirmCancelSheet(rideId, role) {
+    if (!this._cancelSheetState || !this._cancelSheetState.reasonId) return;
+
+    const reasonId = this._cancelSheetState.reasonId;
+    let custom = '';
+    if (reasonId === 'other') {
+      const el = document.getElementById('cancelCustomText');
+      custom = el ? el.value.trim() : '';
+      if (!custom) {
+        const errEl = document.getElementById('cancelSheetError');
+        if (errEl) { errEl.textContent = 'Please describe your reason.'; errEl.classList.add('show'); }
+        return;
+      }
+    }
+    // Encoded as "reason_id: custom_text"
+    const reason = custom ? `${reasonId}: ${custom}` : reasonId;
+
+    const btn = document.getElementById('cancelConfirmBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+
     this.busy = true;
-    this.setBtn(btn, "Cancelling…");
     try {
-      await callMatchingEngine({ action: "cancelDriver", rideId });
+      if (role === 'driver') {
+        await callMatchingEngine({ action: 'cancelDriver', rideId, reason });
+      } else {
+        await callMatchingEngine({
+          action: 'cancelPassenger',
+          rideId,
+          passengerEmail: this.currentUser.email,
+          reason
+        });
+      }
+      this.closeCancelSheet();
       await this.store.init();
       await this.store.loadNotifications(this.currentUser.email);
-      this.switchTab("rides");
+      this.switchTab('rides');
+      toast('Ride cancelled', 'success');
     } catch (e) {
-      toast(e.message, "error");
-      this.setBtn(btn, null);
+      const errEl = document.getElementById('cancelSheetError');
+      if (errEl) { errEl.textContent = e.message; errEl.classList.add('show'); }
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm cancel'; }
     } finally {
       this.busy = false;
     }
   }
 
-  async cancelAsPassenger(rideId, btn) {
-    if (!confirm("Cancel your seat? Your Nexar will be notified.")) return;
-    this.busy = true;
-    this.setBtn(btn, "Cancelling…");
-    try {
-      await callMatchingEngine({
-        action: "cancelPassenger",
-        rideId,
-        passengerEmail: this.currentUser.email,
-      });
-      await this.store.init();
-      await this.store.loadNotifications(this.currentUser.email);
-      this.switchTab("rides");
-    } catch (e) {
-      toast(e.message, "error");
-      this.setBtn(btn, null);
-    } finally {
-      this.busy = false;
-    }
+  // Wrappers so existing onclick handlers still resolve.
+  cancelAsDriver(rideId) {
+    this.openCancelSheet(rideId, 'driver');
+  }
+  cancelAsPassenger(rideId) {
+    this.openCancelSheet(rideId, 'passenger');
   }
 
     // Immediately toggles the two action buttons in the DOM so the driver

@@ -392,6 +392,21 @@
   flex-shrink: 0;
   z-index: 3;
 }
+
+/* Each passenger row is its own stacking context so an open menu in row 1
+   never gets painted under row 2. */
+.passenger-row {
+  position: relative;
+}
+
+/* When open, lift the whole row above its siblings so the panel paints on top. */
+.passenger-row:has(.passenger-actions-menu[open]) {
+  z-index: 40;
+}
+.driver-chip:has(.passenger-actions-menu[open]) {
+  position: relative;
+  z-index: 40;
+}
 .passenger-actions-trigger {
   min-height: 30px;
   padding: 0 var(--s-3);
@@ -423,7 +438,43 @@
   border-color: var(--text);
   color: var(--bg);
 }
-.passenger-actions-menu[open] { z-index: 20; }
+
+.cancel-sheet-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--s-3);
+}
+.cancel-reason-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+.cancel-reason-btn {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-secondary);
+  font-size: 14px;
+  color: var(--text);
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.cancel-reason-btn:hover { background: var(--bg-elevated); }
+.cancel-reason-btn.is-picked {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.cancel-custom { margin-bottom: var(--s-3); }
+.cancel-sheet-actions {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+.cancel-sheet-actions .btn { flex: 1; }
+
+.passenger-actions-menu[open] { z-index: 50; }
 .passenger-actions-menu[open] .passenger-actions-trigger::after {
   transform: rotate(225deg) translate(-1px, -1px);
 }
@@ -437,6 +488,7 @@
   border-radius: var(--r-md);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-sm);
+  z-index: 51;
 }
 .passenger-contact-buttons,
 .passenger-action-buttons {
