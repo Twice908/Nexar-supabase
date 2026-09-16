@@ -1,6 +1,6 @@
 import { DataStore, OnboardingManager, setAuthToken, tryRefreshToken,
          supabaseAuthFetch, geocodeAddress, callMatchingEngine,
-         parseAuthHash, clearAuthHash } from './core.js';
+         parseAuthHash, clearAuthHash, isValidEmail } from './core.js';
 import { toast, openSheet, openModal, toggleTheme, theme, escapeHtml } from './ui.js';
 import { initPush } from './push.js';
 import { LoginView, OnboardingView, HomeView, RidesView, ProfileView,
@@ -526,7 +526,12 @@ class App {
     const password = document.getElementById("loginPassword").value;
     const err = document.getElementById("loginError");
     err.innerHTML = "";
-    if (!email || !password) {
+    if (!isValidEmail(email)) {
+      err.innerHTML =
+        '<div class="alert alert-error">Enter a valid email address</div>';
+      return;
+    }
+    if (!password) {
       err.innerHTML =
         '<div class="alert alert-error">Enter email and password</div>';
       return;

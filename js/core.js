@@ -295,12 +295,41 @@ export async function tryRefreshToken(store) {
   } catch { return false; }
 }
 
+export function isValidEmail(email) {
+  const match = String(email).trim().toLowerCase().match(/^[^\s@]+@([^\s@]+)$/);
+  if (!match) return false;
+
+  const trustedProviders = new Set([
+    'gmail.com',
+    'googlemail.com',
+    'yahoo.com',
+    'ymail.com',
+    'hotmail.com',
+    'outlook.com',
+    'live.com',
+    'msn.com',
+    'icloud.com',
+    'me.com',
+    'proton.me',
+    'protonmail.com',
+    'aol.com',
+    'zoho.com',
+    'gmx.com'
+  ]);
+
+  return trustedProviders.has(match[1]);
+}
+
+export function isValidMobile(mobile) {
+  return /^\d{10}$/.test(mobile);
+}
+
 export class OnboardingManager {
   constructor(store) { this.store = store; }
   validateUserData(d) {
     const e = [];
-    if (!d.email || !d.email.includes('@')) e.push('Valid email is required');
-    if (!d.mobile || d.mobile.length < 10) e.push('Valid mobile number is required');
+    if (!isValidEmail(d.email)) e.push('Valid email is required');
+    if (!isValidMobile(d.mobile)) e.push('Valid 10-digit mobile number is required');
     if (!d.name || d.name.length < 2) e.push('Name is required');
     if (!d.homeZone) e.push('Home zone is required');
     if (!d.officeAddress) e.push('Office address is required');
