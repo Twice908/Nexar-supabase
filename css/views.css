@@ -770,3 +770,82 @@
   font-weight: 500;
   color: var(--text-tertiary);
 }
+
+/* ——— Ride timers ——— */
+.timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--r-full);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  border: 1.5px solid transparent;
+}
+.timer-pill .timer-label {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.timer-pill.is-on-time {
+  background: var(--success-bg);
+  color: var(--success-fg);
+  border-color: var(--success-fg);
+}
+.timer-pill.is-late {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+  border-color: var(--warning-fg);
+}
+.timer-pill.is-overdue {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+  border-color: var(--danger-fg);
+  animation: timer-pulse 1.4s ease-in-out infinite;
+}
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.timer-pill.is-neutral {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--divider);
+}
+.timer-row {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 var(--s-4);
+}
+
+/* Timer inside a passenger row — slightly smaller than the header pill */
+.passenger-row .timer-pill {
+  font-size: 15px;
+  padding: 6px 12px;
+}
+.passenger-row .timer-pill .timer-label {
+  font-size: 10px;
+}
+
+/* No-show prompt row on the passenger card */
+.no-show-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  margin-top: var(--s-3);
+  border: 1.5px solid var(--danger-fg);
+  border-radius: var(--r-md);
+  background: var(--danger-bg);
+}
+.no-show-prompt-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger-fg);
+}

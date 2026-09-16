@@ -4,7 +4,7 @@ import { DataStore, OnboardingManager, setAuthToken, tryRefreshToken,
 import { toast, openSheet, openModal, toggleTheme, theme, escapeHtml } from './ui.js';
 import { initPush } from './push.js';
 import { LoginView, OnboardingView, HomeView, RidesView, ProfileView,
-         NotificationsSheet, EditProfileModal, FinishProfileView } from './views.js';
+         NotificationsSheet, EditProfileModal, FinishProfileView, buildStartTimer, buildPickupCountdown } from './views.js';
 import { icons } from './ui.js';
 
 class App {
@@ -36,10 +36,130 @@ class App {
       'toggleNotifications','markAllNotificationsRead','openNotification','refreshBellBadge',
       'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped',
       'openCancelSheet','pickCancelReason','confirmCancelSheet','closeCancelSheet',
+      'markArrived','markNoShow','handleArrivalPrompt',
       'pickStars', 'submitRating'
     ];
     methods.forEach((m) => {
       this[m] = this[m].bind(this);
+    });
+  }
+
+    // ============ timer ticker + auto-arrival ============
+  startUiTicker() {
+    if (this._uiTicker) return;
+    this._uiTicker = setInterval(() => {
+      this.tickTimers();
+      this.checkAutoArrival();
+    }, 1000);
+  }
+
+  stopUiTicker() {
+    if (this._uiTicker) {
+      clearInterval(this._uiTicker);
+      this._uiTicker = null;
+    }
+    this._arrivalDwell = {};
+  }
+
+  // Recompute every timer pill in-place without a full re-render.
+  tickTimers() {
+    if (!this.currentUser || this.currentView !== 'dashboard') return;
+
+    document.querySelectorAll('[data-timer]').forEach((el) => {
+      const kind = el.dataset.timer;
+      // Recompute the appropriate pill in place. Full re-render would flicker.
+      if (kind === 'start') {
+        // Find the ride this timer belongs to.
+        const card = el.closest('.ride-card');
+        if (!card) return;
+        const ride = this._rideForCard(card);
+        if (!ride) return;
+        const fresh = document.createElement('div');
+        fresh.innerHTML = buildStartTimer(ride);
+        const replacement = fresh.querySelector('[data-timer="start"]');
+        if (replacement) el.replaceWith(replacement);
+      }
+      if (kind === 'pickup') {
+        const email = el.dataset.email;
+        const card = el.closest('.ride-card');
+        if (!card || !email) return;
+        const ride = this._rideForCard(card);
+        if (!ride) return;
+        const fresh = document.createElement('div');
+        fresh.innerHTML = buildPickupCountdown(ride, email);
+        const replacement = fresh.querySelector('[data-timer="pickup"]');
+        if (replacement) el.replaceWith(replacement);
+      }
+
+          // Detect expired pickup timers for rides where I'm the driver.
+    const myActive = this.store.getRides().find(r =>
+      r.driver === this.currentUser?.email && r.status === 'active'
+    );
+    if (!myActive) return;
+
+    (myActive.pickupArrivals || []).forEach(a => {
+      const picked = (myActive.pickedUp || []).includes(a.email);
+      const noShow = (myActive.noShows || []).some(n => n.email === a.email);
+      if (picked || noShow) return;
+      const deadline = new Date(a.arrived_at).getTime() + 5 * 60 * 1000;
+      if (Date.now() > deadline) {
+        const key = `noshow|${myActive.id}|${a.email}`;
+        if (!this._noshowPrompted) this._noshowPrompted = {};
+        if (!this._noshowPrompted[key]) {
+          this._noshowPrompted[key] = true;
+          this.openNoShowSheet(myActive.id, a.email);
+        }
+      }
+    });
+      // 'arrival' updates are driven by pollTick (position changes)
+    });
+  }
+
+  _rideForCard(cardEl) {
+    const mapEl = cardEl.querySelector('[id^="ride-map-"]');
+    if (mapEl) {
+      const id = mapEl.id.replace('ride-map-', '');
+      return this.store.getRides().find(r => r.id === id) || null;
+    }
+    return null;
+  }
+
+  // Auto-arrival: for each of my active rides as driver, check if I'm within
+  // 50 m of a passenger pickup for >= 60 s, then markArrived automatically.
+  checkAutoArrival() {
+    if (this.busy || this.currentView !== 'dashboard' || !this.currentUser) return;
+    if (!this._arrivalDwell) this._arrivalDwell = {};
+
+    const myActive = this.store.getRides().find(r =>
+      r.driver === this.currentUser.email && r.status === 'active'
+    );
+    if (!myActive || !myActive.currentPosition) return;
+
+    const [meLat, meLng] = [myActive.currentPosition.lat, myActive.currentPosition.lng];
+    const arrivals = myActive.pickupArrivals || [];
+
+    (myActive.passengers || []).forEach(email => {
+      if (arrivals.some(a => a.email === email)) return;
+      const p = this.store.getUserByEmail(email);
+      if (!p) return;
+      const pickup = myActive.tripType === 'morning'
+        ? [p.homeLat, p.homeLng]
+        : [p.officeLat, p.officeLng];
+      if (!pickup[0] || !pickup[1]) return;
+
+      const km = kmBetween([meLat, meLng], pickup);
+      const withinRadius = km <= 0.05; // 50 m
+      const key = `${myActive.id}|${email}`;
+
+      if (withinRadius) {
+        if (!this._arrivalDwell[key]) this._arrivalDwell[key] = Date.now();
+        if (Date.now() - this._arrivalDwell[key] >= 60 * 1000) {
+          delete this._arrivalDwell[key];
+          this.markArrived(myActive.id, email, null, true);
+        }
+      } else {
+        delete this._arrivalDwell[key];
+      }
     });
   }
     // Closes any open <details class="passenger-actions-menu"> when the user
@@ -60,6 +180,68 @@ class App {
     // Also close on scroll — otherwise a scrolled page leaves the popover
     // floating in the wrong place on mobile.
     window.addEventListener('scroll', () => closeAll(null), true);
+  }
+
+    async markArrived(rideId, passengerEmail, btn, isAuto = false) {
+    if (btn) this.setBtn(btn, 'Marking…');
+    try {
+      await callMatchingEngine({
+        action: 'markArrived',
+        rideId,
+        passengerEmail,
+        source: isAuto ? 'gps' : 'manual'
+      });
+      await this.store.init();
+      await this.store.loadNotifications(this.currentUser.email);
+      if (!isAuto) this.switchTab('rides');
+      else this.renderContentOnly();
+    } catch (e) {
+      if (btn) {
+        this.setBtn(btn, null);
+        toast(e.message, 'error');
+      }
+    }
+  }
+
+  openNoShowSheet(rideId, passengerEmail) {
+    const p = this.store.getUserByEmail(passengerEmail);
+    const name = p?.name || passengerEmail;
+    const contactHTML = p?.mobile ? `
+      <div class="passenger-contact-buttons" style="margin-bottom:var(--s-3);">
+        <a href="${buildTelUrl(p.mobile)}" class="btn btn-secondary btn-sm">${iconPhone()}<span>Call ${escapeHtml(name)}</span></a>
+        <a href="${buildWhatsAppUrl(p.mobile, `Hi ${name}, I'm waiting at the pickup point.`)}" target="_blank" class="btn btn-secondary btn-sm">${iconWhatsApp()}<span>WhatsApp</span></a>
+      </div>` : '';
+
+    const html = `
+      <p class="cancel-sheet-hint">${escapeHtml(name)} hasn't shown up in 5 minutes. What would you like to do?</p>
+      ${contactHTML}
+      <div class="cancel-sheet-actions" style="flex-direction:column;">
+        <button class="btn btn-primary btn-block" onclick="app.handleArrivalPrompt('${rideId}', '${passengerEmail}', 'picked')">Picked up</button>
+        <button class="btn btn-danger btn-block" onclick="app.handleArrivalPrompt('${rideId}', '${passengerEmail}', 'leave')">Leave without ${escapeHtml(name)}</button>
+        <button class="btn btn-secondary btn-block" onclick="app.closeCancelSheet()">Wait longer</button>
+      </div>
+    `;
+    const { close } = openSheet({ title: 'Passenger not here', content: html });
+    this._cancelSheetClose = close;
+  }
+
+  async handleArrivalPrompt(rideId, passengerEmail, mode) {
+    this.closeCancelSheet();
+    this.busy = true;
+    try {
+      if (mode === 'picked') {
+        await callMatchingEngine({ action: 'markPickedUp', rideId, passengerEmail });
+      } else if (mode === 'leave') {
+        await callMatchingEngine({ action: 'markNoShow', rideId, passengerEmail });
+      }
+      await this.store.init();
+      await this.store.loadNotifications(this.currentUser.email);
+      this.switchTab('rides');
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      this.busy = false;
+    }
   }
 
   // ============ router ============
@@ -548,6 +730,7 @@ class App {
   logout() {
     this.destroyRideMaps();
     this.stopPositionWatcher();
+    this.stopUiTicker();
     this.store.clearSession();
     setAuthToken(null);
     this.currentUser = null;
@@ -997,6 +1180,7 @@ class App {
     this._pollingHandle = setInterval(() => this.pollTick(), 30000);
     if (this.currentUser?.email) initPush(this.currentUser.email);
     this.startPositionWatcher();
+    this.startUiTicker();
   }
   async pollTick() {
     if (this.busy || this.currentView !== "dashboard" || !this.currentUser)

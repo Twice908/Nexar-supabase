@@ -1,5 +1,102 @@
 import { icons, escapeHtml, initials } from './ui.js';
 
+
+// Formats milliseconds into M:SS
+function fmtCountdown(ms) {
+  if (ms <= 0) return '0:00';
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// Builds the driver-start countdown pill.
+// ride.date = 'YYYY-MM-DD', ride.pickupTime = 'HH:MM' (IST). Grace is 10 min;
+// ride is "missed" at 30 min via computeEffectiveStatus.
+function buildStartTimer(ride) {
+  if (ride.status !== 'matched') return '';
+  if (!ride.date || !ride.pickupTime) return '';
+  const [h, m] = ride.pickupTime.split(':').map(Number);
+  const [Y, Mo, D] = ride.date.split('-').map(Number);
+  const pickupUtcMs = Date.UTC(Y, Mo - 1, D, h, m, 0);
+  const pickupIstMs = pickupUtcMs - (5 * 60 + 30) * 60 * 1000;
+  const now = Date.now();
+  const grace = 10 * 60 * 1000;
+  const hardDeadline = 30 * 60 * 1000;
+  const msToGrace = pickupIstMs + grace - now;
+  const msToHard = pickupIstMs + hardDeadline - now;
+
+  // Before scheduled time
+  if (now < pickupIstMs) {
+    const mins = Math.ceil((pickupIstMs - now) / 60000);
+    return `<div class="timer-row"><div class="timer-pill is-neutral" data-timer="start">
+      <span class="timer-label">Starts in</span>${mins} min
+    </div></div>`;
+  }
+
+  // In grace window
+  if (msToGrace > 0) {
+    return `<div class="timer-row"><div class="timer-pill is-on-time" data-timer="start">
+      <span class="timer-label">Start by</span>${fmtCountdown(msToGrace)}
+    </div></div>`;
+  }
+
+  // Past grace, before hard deadline
+  if (msToHard > 0) {
+    return `<div class="timer-row"><div class="timer-pill is-late" data-timer="start">
+      <span class="timer-label">Start now</span>${fmtCountdown(msToHard)}
+    </div></div>`;
+  }
+
+  return `<div class="timer-row"><div class="timer-pill is-overdue" data-timer="start">
+    <span class="timer-label">Overdue</span>Missed
+  </div></div>`;
+}
+
+// Distance between two [lat,lng] points in km (haversine).
+function kmBetween(a, b) {
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLon = toRad(b[1] - a[1]);
+  const x = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// ETA in minutes for the Nexar to reach a passenger pickup (assumes ~25 km/h).
+function etaMinutes(driverPos, pickupPos) {
+  if (!driverPos || !pickupPos) return null;
+  const km = kmBetween(driverPos, pickupPos);
+  return Math.max(1, Math.round(km / 25 * 60));
+}
+
+// Builds the "Nexar arriving in X min" pill for a passenger.
+function buildArrivalTimer(ride, pickupLatLng) {
+  if (ride.status !== 'active') return '';
+  if (!ride.currentPosition) return '';
+  const eta = etaMinutes([ride.currentPosition.lat, ride.currentPosition.lng], pickupLatLng);
+  if (eta === null) return '';
+  const color = eta <= 2 ? 'is-late' : (eta <= 5 ? 'is-on-time' : 'is-neutral');
+  return `<div class="timer-row"><div class="timer-pill ${color}" data-timer="arrival">
+    <span class="timer-label">Nexar arriving</span>~${eta} min
+  </div></div>`;
+}
+
+// Builds the 5-min pickup countdown for a passenger who's been "arrived".
+function buildPickupCountdown(ride, passengerEmail) {
+  const arrival = (ride.pickupArrivals || []).find(a => a.email === passengerEmail);
+  if (!arrival) return '';
+  const arrivalMs = new Date(arrival.arrived_at).getTime();
+  const deadlineMs = arrivalMs + 5 * 60 * 1000;
+  const remaining = deadlineMs - Date.now();
+  const isOverdue = remaining <= 0;
+  return `<div class="timer-row"><div class="timer-pill ${isOverdue ? 'is-overdue' : 'is-late'}" data-timer="pickup" data-email="${passengerEmail}">
+    <span class="timer-label">${isOverdue ? 'Time up' : 'Reach pickup in'}</span>${fmtCountdown(Math.max(0, remaining))}
+  </div></div>`;
+}
+
+
 export function LoginView({ banner, prefillEmail } = {}) {
   const bannerHtml = banner ? `<div class="alert alert-warning">${escapeHtml(banner)}</div>` : '';
   const emailVal = prefillEmail ? `value="${escapeHtml(prefillEmail)}"` : '';
@@ -407,6 +504,9 @@ function rideCard(ride, user, past) {
         const isMe = email === user.email;
         const picked = (ride.pickedUp || []).includes(email);
         const dropped = (ride.droppedOff || []).includes(email);
+        const arrivalForThis = (ride.pickupArrivals || []).find(a => a.email === email);
+        const showPickupTimer = arrivalForThis && !picked && !dropped;
+        const pickupTimerHtml = showPickupTimer ? buildPickupCountdown(ride, email) : '';
 
         let statusPill;
         if (dropped) {
@@ -461,11 +561,18 @@ function rideCard(ride, user, past) {
           </div>
         ` : ''}
         ${driverChip}
+        ${!isDriver && ride.status === 'active' ? (() => {
+          const myPickup = ride.tripType === 'morning'
+            ? [user.homeLat, user.homeLng]
+            : [user.officeLat, user.officeLng];
+          return buildArrivalTimer(ride, myPickup) + buildPickupCountdown(ride, user.email);
+        })() : ''}
         ${myWalk}
         ${mapId ? `<div class="ride-map" id="${mapId}"></div>` : ''}
 
         ${buildMapAndShareRow(ride, isDriver, user, state)}
 
+        ${!past ? buildStartTimer(ride) : ''}
         ${passengerList}
         ${coPassengerList}
         ${!past ? actionButtons(ride, isDriver) : ''}
@@ -567,6 +674,7 @@ function buildPassengerList(ride, user, state) {
                 </div>
                 ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
                 ${dropTimeLabel}
+                ${pickupTimerHtml}
               </div>
             </div>
           </div>
@@ -594,8 +702,15 @@ function buildChipMenu({ ride, user, targetEmail, targetUser, variant, state, st
     const droppedDisabled = (!picked || dropped) ? 'disabled' : '';
     const onboardIsPrimary = !picked ? 'passenger-action-btn-primary' : '';
     const droppedIsPrimary = (picked && !dropped) ? 'passenger-action-btn-primary' : '';
+    const alreadyArrived = (ride.pickupArrivals || []).some(a => a.email === targetEmail);
+    const arrivedBtn = !alreadyArrived && !picked
+      ? `<button class="btn btn-sm passenger-action-btn" style="width:100%;"
+           onclick="app.markArrived('${ride.id}', '${targetEmail}', this)">I'm here</button>`
+      : '';
+
     actionBtns = `
       <div class="passenger-action-buttons">
+        ${arrivedBtn}
         <button class="btn btn-sm passenger-action-btn ${onboardIsPrimary}"
           data-pickup-btn="${ride.id}|${targetEmail}"
           ${onboardDisabled}
