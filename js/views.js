@@ -2,7 +2,7 @@ import { icons, escapeHtml, initials } from './ui.js';
 
 
 // Formats milliseconds into M:SS
-function fmtCountdown(ms) {
+export function fmtCountdown(ms) {
   if (ms <= 0) return '0:00';
   const totalSec = Math.floor(ms / 1000);
   const m = Math.floor(totalSec / 60);
@@ -13,7 +13,7 @@ function fmtCountdown(ms) {
 // Builds the driver-start countdown pill.
 // ride.date = 'YYYY-MM-DD', ride.pickupTime = 'HH:MM' (IST). Grace is 10 min;
 // ride is "missed" at 30 min via computeEffectiveStatus.
-function buildStartTimer(ride) {
+export function buildStartTimer(ride) {
   if (ride.status !== 'matched') return '';
   if (!ride.date || !ride.pickupTime) return '';
   const [h, m] = ride.pickupTime.split(':').map(Number);
@@ -54,7 +54,7 @@ function buildStartTimer(ride) {
 }
 
 // Distance between two [lat,lng] points in km (haversine).
-function kmBetween(a, b) {
+export function kmBetween(a, b) {
   const R = 6371;
   const toRad = d => d * Math.PI / 180;
   const dLat = toRad(b[0] - a[0]);
@@ -65,14 +65,14 @@ function kmBetween(a, b) {
 }
 
 // ETA in minutes for the Nexar to reach a passenger pickup (assumes ~25 km/h).
-function etaMinutes(driverPos, pickupPos) {
+export function etaMinutes(driverPos, pickupPos) {
   if (!driverPos || !pickupPos) return null;
   const km = kmBetween(driverPos, pickupPos);
   return Math.max(1, Math.round(km / 25 * 60));
 }
 
 // Builds the "Nexar arriving in X min" pill for a passenger.
-function buildArrivalTimer(ride, pickupLatLng) {
+export function buildArrivalTimer(ride, pickupLatLng) {
   if (ride.status !== 'active') return '';
   if (!ride.currentPosition) return '';
   const eta = etaMinutes([ride.currentPosition.lat, ride.currentPosition.lng], pickupLatLng);
@@ -84,7 +84,7 @@ function buildArrivalTimer(ride, pickupLatLng) {
 }
 
 // Builds the 5-min pickup countdown for a passenger who's been "arrived".
-function buildPickupCountdown(ride, passengerEmail) {
+export function buildPickupCountdown(ride, passengerEmail) {
   const arrival = (ride.pickupArrivals || []).find(a => a.email === passengerEmail);
   if (!arrival) return '';
   const arrivalMs = new Date(arrival.arrived_at).getTime();
