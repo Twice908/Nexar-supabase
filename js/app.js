@@ -4,7 +4,9 @@ import { DataStore, OnboardingManager, setAuthToken, tryRefreshToken,
 import { toast, openSheet, openModal, toggleTheme, theme, escapeHtml } from './ui.js';
 import { initPush } from './push.js';
 import { LoginView, OnboardingView, HomeView, RidesView, ProfileView,
-         NotificationsSheet, EditProfileModal, FinishProfileView, buildStartTimer, buildPickupCountdown } from './views.js';
+         NotificationsSheet, EditProfileModal, FinishProfileView,
+         buildStartTimer, buildPickupCountdown, kmBetween,
+         iconPhone, iconWhatsApp } from './views.js';
 import { icons } from './ui.js';
 
 class App {
