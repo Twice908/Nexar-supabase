@@ -42,8 +42,12 @@ class App {
       'pickStars', 'submitRating'
     ];
     methods.forEach((m) => {
-      this[m] = this[m].bind(this);
-    });
+  if (typeof this[m] === 'function') {
+    this[m] = this[m].bind(this);
+  } else {
+    console.warn(`[App] bind skipped — method not found: ${m}`);
+  }
+});
   }
 
     // ============ timer ticker + auto-arrival ============
