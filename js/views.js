@@ -440,8 +440,8 @@ function rideCard(ride, user, past) {
       <div class="ride-card is-dormant">
         <div class="ride-card-head">
           <div>
-            <div class="ride-card-title">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
-            <div class="ride-card-date">${formatDate(ride.date)}</div>
+            <div class="ride-card-title">${formatDate(ride.date)}</div>
+            <div class="ride-card-date">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
           </div>
           <span class="pill pill-neutral"><span class="dot"></span>No match</span>
         </div>
@@ -456,8 +456,8 @@ function rideCard(ride, user, past) {
       <div class="ride-card is-dormant">
         <div class="ride-card-head">
           <div>
-            <div class="ride-card-title">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
-            <div class="ride-card-date">${formatDate(ride.date)}</div>
+            <div class="ride-card-title">${formatDate(ride.date)}</div>
+            <div class="ride-card-date">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
           </div>
           <span class="pill pill-danger"><span class="dot"></span>Cancelled</span>
         </div>
@@ -556,8 +556,8 @@ function rideCard(ride, user, past) {
     <div class="ride-card ${state.cardClass} ride-card-${ride.status.replace(/\s+/g, '-')}">
       <div class="ride-card-head">
         <div>
-          <div class="ride-card-title">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride</div>
-          <div class="ride-card-date">${formatDate(ride.date)} · ${isDriver ? 'You drive' : 'You ride'}</div>
+          <div class="ride-card-title">${formatDate(ride.date)}</div>
+          <div class="ride-card-date">${ride.tripType === 'morning' ? 'Morning' : 'Evening'} ride · ${isDriver ? 'You drive' : 'You ride'}</div>
         </div>
         ${statusPill(ride.status)}
       </div>
