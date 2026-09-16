@@ -192,10 +192,17 @@ export function HomeView({ user, rides, notifications }) {
   const firstName = (user.name || '').split(' ')[0] || 'there';
 
   const todayStr = toLocalDate(new Date());
-  const todayRides = rides.filter(r =>
-    r.date === todayStr && (r.driver === user.email || r.passengers.includes(user.email))
+  const myRides = rides.filter(r => r.driver === user.email || r.passengers.includes(user.email));
+
+  // Prefer today's ride if there is one, otherwise show the next upcoming.
+  const todayRide = myRides.find(r =>
+    r.date === todayStr && (r.status === 'matched' || r.status === 'active')
   );
-  const nextRide = todayRides.find(r => r.status === 'matched' || r.status === 'active');
+  const upcomingRide = myRides
+    .filter(r => r.date >= todayStr && (r.status === 'matched' || r.status === 'active'))
+    .sort((a, b) => (a.date + a.tripType).localeCompare(b.date + b.tripType))[0];
+
+  const nextRide = todayRide || upcomingRide;
 
   const month = todayStr.slice(0, 7);
   const thisMonth = rides.filter(r => r.date.startsWith(month) &&
@@ -203,9 +210,13 @@ export function HomeView({ user, rides, notifications }) {
   const asDriver = thisMonth.filter(r => r.driver === user.email).length;
   const asPassenger = thisMonth.filter(r => r.passengers.includes(user.email)).length;
 
+  const heroLabel = nextRide
+    ? (nextRide.date === todayStr ? "Today's ride" : `Next ride · ${formatDate(nextRide.date)}`)
+    : 'Today';
+
   const hero = nextRide ? `
     <div class="hero-ride hero-ride-scheduled">
-      <div class="hero-ride-label">Today's ride</div>
+      <div class="hero-ride-label">${heroLabel}</div>
       <div class="hero-ride-main">
         <div class="hero-ride-time">${nextRide.pickupTime || '—'}</div>
         <div class="hero-ride-direction">${nextRide.tripType === 'morning' ? 'To office' : 'To home'}</div>
@@ -1069,9 +1080,16 @@ function formatDate(s) {
   const d = new Date(s + 'T00:00:00');
   const today = new Date();
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  if (s === toLocalDate(today)) return 'Today';
-  if (s === toLocalDate(tomorrow)) return 'Tomorrow';
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+
+  // Always include the day + date so "Today" is not ambiguous. The relative
+  // label is a prefix, not a replacement.
+  const dayDate = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  if (s === toLocalDate(today))     return `Today · ${dayDate}`;
+  if (s === toLocalDate(tomorrow))  return `Tomorrow · ${dayDate}`;
+  if (s === toLocalDate(yesterday)) return `Yesterday · ${dayDate}`;
+  return dayDate;
 }
 function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
