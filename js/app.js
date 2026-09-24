@@ -39,7 +39,7 @@ class App {
       'openEditProfile','openNotifications','toggleTheme','handleEditProfileSave','markPickedUp','markDropped',
       'openCancelSheet','pickCancelReason','confirmCancelSheet','closeCancelSheet',
       'markArrived','markNoShow','handleArrivalPrompt',
-      'pickStars', 'submitRating'
+      'pickStars', 'submitRating', 'overrideCarCommitment'
     ];
     methods.forEach((m) => {
   if (typeof this[m] === 'function') {
@@ -48,6 +48,27 @@ class App {
     console.warn(`[App] bind skipped — method not found: ${m}`);
   }
 });
+  }
+
+  async overrideCarCommitment(date, btn) {
+    if (!confirm('Tell us you drove alone today? You\'ll be matched as a Nexar for the evening ride.')) return;
+    this.setBtn(btn, 'Saving…');
+    this.busy = true;
+    try {
+      await callMatchingEngine({
+        action: 'overrideCarCommitment',
+        userEmail: this.currentUser.email,
+        date
+      });
+      await this.store.init();
+      toast('You\'ll be matched as a Nexar for the evening ride', 'success');
+      this.switchTab('rides');
+    } catch (e) {
+      toast(e.message, 'error');
+      this.setBtn(btn, null);
+    } finally {
+      this.busy = false;
+    }
   }
 
     // ============ timer ticker + auto-arrival ============

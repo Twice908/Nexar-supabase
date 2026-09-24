@@ -149,16 +149,17 @@ export function rideFromDb(row) {
 
 // ——— store ———
 export class DataStore {
-  constructor() { this.cache = { users: [], rides: [], schedules: [], driverLog: {}, notifications: [], ratings: [] }; }
+  constructor() { this.cache = { users: [], rides: [], schedules: [], driverLog: {}, notifications: [], ratings: [], carCommitments: [] }; }
 
   async init() {
     if (!localStorage.getItem('nexar_sessions')) localStorage.setItem('nexar_sessions', JSON.stringify({}));
-    const [usersRows, ridesRows, schedulesRows, driverLogRows, ratingsRows] = await Promise.all([
+    const [usersRows, ridesRows, schedulesRows, driverLogRows, ratingsRows, commitmentsRows] = await Promise.all([
       supabaseFetch('users?select=*'),
       supabaseFetch('rides?select=*'),
       supabaseFetch('schedules?select=*'),
       supabaseFetch('driver_log?select=*'),
-      supabaseFetch('ride_ratings?select=*')
+      supabaseFetch('ride_ratings?select=*'),
+      supabaseFetch('car_commitments?select=*')
     ]);
     this.cache.users = usersRows.map(userFromDb);
     this.cache.rides = ridesRows.map(rideFromDb);
@@ -175,6 +176,13 @@ export class DataStore {
       stars: r.stars,
       comment: r.comment,
       createdAt: r.created_at
+    }));
+    this.cache.carCommitments = commitmentsRows.map(r => ({
+      id: r.id,
+      userEmail: r.user_email,
+      date: r.date,
+      broughtCar: r.brought_car,
+      source: r.source
     }));
   }
 
@@ -197,6 +205,16 @@ export class DataStore {
     return { avg: (sum / list.length).toFixed(1), count: list.length };
   }
 
+    getCarCommitment(userEmail, date) {
+    return this.cache.carCommitments.find(c =>
+      c.userEmail === userEmail && c.date === date
+    ) || null;
+  }
+
+  hasBroughtCar(userEmail, date) {
+    const c = this.getCarCommitment(userEmail, date);
+    return c ? c.broughtCar === true : null;
+  }
 
   getUsers() { return this.cache.users; }
   getUserByEmail(e) { return this.cache.users.find(u => u.email === e); }

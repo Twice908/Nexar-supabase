@@ -447,6 +447,7 @@ function rideCard(ride, user, past) {
         </div>
         <div class="ride-card-body">
           <p class="caption">No Nexar could serve your route. Please arrange your own commute.</p>
+          ${buildCarOverrideButton(ride, user)}
         </div>
       </div>
     `;
@@ -587,6 +588,7 @@ function rideCard(ride, user, past) {
         ${passengerList}
         ${coPassengerList}
         ${!past ? actionButtons(ride, isDriver) : ''}
+        ${buildCarOverrideButton(ride, user)}
       </div>
     </div>
   `;
@@ -1100,4 +1102,31 @@ function timeAgo(iso) {
   if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return `${Math.floor(diff/86400)}d ago`;
+}
+
+// Shows the "I'm driving alone today" override button when it applies:
+// - user is on a no-match ride for the given date, OR
+// - user was a no-show on a morning ride today, AND
+// - the evening matching hasn't already happened (checked by the caller)
+export function buildCarOverrideButton(ride, user) {
+  if (!ride || !ride.date) return '';
+  if (ride.date !== toLocalDate(new Date())) return ''; // only today
+
+  // Case 1: no-match ride for this date
+  const isNoMatch = ride.status === 'no match';
+
+  // Case 2: user was a no-show in a morning ride
+  const isNoShow = ride.tripType === 'morning'
+    && (ride.noShows || []).some(n => n.email === user.email);
+
+  if (!isNoMatch && !isNoShow) return '';
+
+  return `
+    <div class="car-override-row">
+      <button class="btn btn-outline btn-sm" onclick="app.overrideCarCommitment('${ride.date}', this)">
+        I'm driving alone today
+      </button>
+      <p class="car-override-hint">Enable this and we'll match you as a Nexar for the evening ride.</p>
+    </div>
+  `;
 }

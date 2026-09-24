@@ -859,3 +859,15 @@
   font-weight: 600;
   color: var(--danger-fg);
 }
+
+.car-override-row {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--divider);
+}
+.car-override-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
