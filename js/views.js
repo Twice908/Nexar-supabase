@@ -13,6 +13,17 @@ export function fmtCountdown(ms) {
 // Builds the driver-start countdown pill.
 // ride.date = 'YYYY-MM-DD', ride.pickupTime = 'HH:MM' (IST). Grace is 10 min;
 // ride is "missed" at 30 min via computeEffectiveStatus.
+// Formats a duration in ms as "Xh Ym" or "Ym" for readability.
+function fmtHoursMinutes(ms) {
+  if (ms <= 0) return '0m';
+  const totalMin = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 export function buildStartTimer(ride) {
   if (ride.status !== 'matched') return '';
   if (!ride.date || !ride.pickupTime) return '';
@@ -23,14 +34,17 @@ export function buildStartTimer(ride) {
   const now = Date.now();
   const grace = 10 * 60 * 1000;
   const hardDeadline = 30 * 60 * 1000;
+  const msToPickup = pickupIstMs - now;
   const msToGrace = pickupIstMs + grace - now;
   const msToHard = pickupIstMs + hardDeadline - now;
 
-  // Before scheduled time
-  if (now < pickupIstMs) {
-    const mins = Math.ceil((pickupIstMs - now) / 60000);
+  // More than 1 hour before pickup → no timer.
+  if (msToPickup > 60 * 60 * 1000) return '';
+
+  // Between 1 hour and pickup time → "Starts in Xh Ym".
+  if (msToPickup > 0) {
     return `<div class="timer-row"><div class="timer-pill is-neutral" data-timer="start">
-      <span class="timer-label">Starts in</span>${mins} min
+      <span class="timer-label">Starts in</span>${fmtHoursMinutes(msToPickup)}
     </div></div>`;
   }
 
@@ -84,12 +98,19 @@ export function buildArrivalTimer(ride, pickupLatLng) {
 }
 
 // Builds the 5-min pickup countdown for a passenger who's been "arrived".
-export function buildPickupCountdown(ride, passengerEmail) {
+// After the window expires the pill hides itself — the driver's app shows a
+// bottom sheet instead, and the passenger sees the pickup as missed.
+export function buildPickupCountdown(ride, passengerEmail, opts = {}) {
   const arrival = (ride.pickupArrivals || []).find(a => a.email === passengerEmail);
   if (!arrival) return '';
   const arrivalMs = new Date(arrival.arrived_at).getTime();
   const deadlineMs = arrivalMs + 5 * 60 * 1000;
   const remaining = deadlineMs - Date.now();
+
+  // Window expired. Hide the pill — unless the caller asks for a "time up"
+  // state (used on the driver's row so they know why the sheet popped).
+  if (remaining <= 0 && !opts.showExpired) return '';
+
   const isOverdue = remaining <= 0;
   return `<div class="timer-row"><div class="timer-pill ${isOverdue ? 'is-overdue' : 'is-late'}" data-timer="pickup" data-email="${passengerEmail}">
     <span class="timer-label">${isOverdue ? 'Time up' : 'Reach pickup in'}</span>${fmtCountdown(Math.max(0, remaining))}
@@ -677,6 +698,9 @@ function buildPassengerList(ride, user, state) {
         const arrivalForThis = (ride.pickupArrivals || []).find(a => a.email === email);
         const showPickupTimer = arrivalForThis && !picked && !dropped;
         const pickupTimerHtml = showPickupTimer ? buildPickupCountdown(ride, email) : '';
+        // No-show handling: if the timer expired, hide the pill (no 00:00 blink).
+        const pickupExpired = arrivalForThis && !picked && !dropped &&
+          (Date.now() - new Date(arrivalForThis.arrived_at).getTime()) >= 5 * 60 * 1000;
         return `
           <div class="passenger-row" style="display:block;" ${state.chipDimmed ? 'opacity:0.72;' : ''}>
             <div class="passenger-row-main">
@@ -689,7 +713,8 @@ function buildPassengerList(ride, user, state) {
                 </div>
                 ${walk !== null ? `<div class="passenger-walk">Walk ${walk} min (${Math.round((km||0)*1000)} m)</div>` : ''}
                 ${dropTimeLabel}
-                ${pickupTimerHtml}
+                ${pickupExpired ? '<div class="passenger-walk" style="color:var(--danger-fg); font-weight:600;">Passenger hasn\'t shown up</div>' : ''}
+                ${pickupExpired ? '' : pickupTimerHtml}
               </div>
             </div>
           </div>

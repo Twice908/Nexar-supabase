@@ -46,6 +46,8 @@ export function toast(message, variant = '') {
 // Bottom sheet
 export function openSheet({ title, content, onClose }) {
   const root = document.getElementById('sheet-root');
+  // Refuse to stack sheets — the newest wins.
+  if (root.children.length > 0) return { close: () => {}, sheet: null };
   root.innerHTML = `
     <div class="sheet-backdrop" data-close></div>
     <div class="sheet" role="dialog" aria-modal="true">

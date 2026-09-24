@@ -124,20 +124,27 @@ class App {
     );
     if (!myActive) return;
 
-    (myActive.pickupArrivals || []).forEach(a => {
+    // Make sure only one sheet is open at a time. If a sheet is already open,
+    // don't stack another one.
+    const sheetRoot = document.getElementById('sheet-root');
+    const sheetOpen = sheetRoot && sheetRoot.children.length > 0;
+
+    for (const a of (myActive.pickupArrivals || [])) {
       const picked = (myActive.pickedUp || []).includes(a.email);
       const noShow = (myActive.noShows || []).some(n => n.email === a.email);
-      if (picked || noShow) return;
+      if (picked || noShow) continue;
+
       const deadline = new Date(a.arrived_at).getTime() + 5 * 60 * 1000;
       if (Date.now() > deadline) {
         const key = `noshow|${myActive.id}|${a.email}`;
         if (!this._noshowPrompted) this._noshowPrompted = {};
-        if (!this._noshowPrompted[key]) {
-          this._noshowPrompted[key] = true;
-          this.openNoShowSheet(myActive.id, a.email);
-        }
+        if (this._noshowPrompted[key]) continue;
+
+        this._noshowPrompted[key] = true;
+        if (!sheetOpen) this.openNoShowSheet(myActive.id, a.email);
+        break; // one sheet at a time
       }
-    });
+    }
       // 'arrival' updates are driven by pollTick (position changes)
     });
   }
@@ -230,7 +237,7 @@ class App {
     }
   }
 
-  openNoShowSheet(rideId, passengerEmail) {
+    openNoShowSheet(rideId, passengerEmail) {
     const p = this.store.getUserByEmail(passengerEmail);
     const name = p?.name || passengerEmail;
     const contactHTML = p?.mobile ? `
@@ -248,7 +255,19 @@ class App {
         <button class="btn btn-secondary btn-block" onclick="app.closeCancelSheet()">Wait longer</button>
       </div>
     `;
-    const { close } = openSheet({ title: 'Passenger not here', content: html });
+
+    const rideIdClosure = rideId;
+    const emailClosure = passengerEmail;
+
+    const { close } = openSheet({
+      title: 'Passenger not here',
+      content: html,
+      onClose: () => {
+        // Re-arm so the prompt can fire again if the driver hits "Wait longer".
+        const key = `noshow|${rideIdClosure}|${emailClosure}`;
+        if (this._noshowPrompted) delete this._noshowPrompted[key];
+      }
+    });
     this._cancelSheetClose = close;
   }
 
